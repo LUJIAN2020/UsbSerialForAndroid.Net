@@ -87,7 +87,7 @@ QinHeng = 0x1A86
 
 SiliconLabs = 0x10C4
 
-- CP2102 = 0xeA60
+- CP2102 = 0xEA60
 - CP2105 = 0xEA70
 - CP2108 = 0xEA71
 - CP2110 = 0xEA80
