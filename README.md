@@ -92,3 +92,9 @@ SiliconLabs = 0x10C4
 - CP2108 = 0xEA71
 - CP2110 = 0xEA80
 
+### 🎨DEMO截图
+
+| MAUI | Avalonia |
+| ----------- | ----------- |
+| ![alt text](./Images/MauiDemo.jpg) | ![alt text](./Images/AvaloniaDemo.jpg)       |
+
