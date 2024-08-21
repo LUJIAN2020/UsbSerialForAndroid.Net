@@ -1,0 +1,60 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35122.118
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UsbSerialForAndroid.Net", "UsbSerialForAndroid.Net\UsbSerialForAndroid.Net.csproj", "{25EE2D71-7033-48AA-B547-F8D6E2335DDA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AvaloniaDemo", "AvaloniaDemo", "{2FF17FE5-5C82-4509-9EB1-F4E53EAF0633}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MauiDemo", "MauiDemo", "{5C9612C5-4D0B-42F9-88DE-343EF72DBBAF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demo", "Demo", "{27A27B1D-7036-4874-AD74-693179D719AD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvaloniaDemo", "Demo\AvaloniaDemo\AvaloniaDemo\AvaloniaDemo.csproj", "{453ACA73-6FDA-41F5-BA3B-8C0304C82003}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvaloniaDemo.Android", "Demo\AvaloniaDemo\AvaloniaDemo.Android\AvaloniaDemo.Android.csproj", "{23DAB9B9-A489-45DB-9AE7-6F371290C147}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MauiDemo", "Demo\MauiDemo\MauiDemo.csproj", "{D339C739-C797-43A5-90A7-A7D89A568092}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{25EE2D71-7033-48AA-B547-F8D6E2335DDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25EE2D71-7033-48AA-B547-F8D6E2335DDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25EE2D71-7033-48AA-B547-F8D6E2335DDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25EE2D71-7033-48AA-B547-F8D6E2335DDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{453ACA73-6FDA-41F5-BA3B-8C0304C82003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{453ACA73-6FDA-41F5-BA3B-8C0304C82003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{453ACA73-6FDA-41F5-BA3B-8C0304C82003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{453ACA73-6FDA-41F5-BA3B-8C0304C82003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D339C739-C797-43A5-90A7-A7D89A568092}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2FF17FE5-5C82-4509-9EB1-F4E53EAF0633} = {27A27B1D-7036-4874-AD74-693179D719AD}
+		{5C9612C5-4D0B-42F9-88DE-343EF72DBBAF} = {27A27B1D-7036-4874-AD74-693179D719AD}
+		{453ACA73-6FDA-41F5-BA3B-8C0304C82003} = {2FF17FE5-5C82-4509-9EB1-F4E53EAF0633}
+		{23DAB9B9-A489-45DB-9AE7-6F371290C147} = {2FF17FE5-5C82-4509-9EB1-F4E53EAF0633}
+		{D339C739-C797-43A5-90A7-A7D89A568092} = {5C9612C5-4D0B-42F9-88DE-343EF72DBBAF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {45A64818-D2A9-42CB-A02F-7237DD7908CD}
+	EndGlobalSection
+EndGlobal

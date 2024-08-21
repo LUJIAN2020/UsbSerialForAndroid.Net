@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ApplicationId>com.CompanyName.AvaloniaDemo</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AndroidResource Include="Icon.png">
+      <Link>Resources\drawable\Icon.png</Link>
+    </AndroidResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Android" Version="11.1.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\UsbSerialForAndroid.Net\UsbSerialForAndroid.Net.csproj" />
+    <ProjectReference Include="..\AvaloniaDemo\AvaloniaDemo.csproj" />
+  </ItemGroup>
+</Project>

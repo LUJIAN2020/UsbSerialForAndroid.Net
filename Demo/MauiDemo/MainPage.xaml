@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="MauiDemo.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:cov="clr-namespace:MauiDemo.Converters"
+    xmlns:enums="clr-namespace:MauiDemo.Enums"
+    xmlns:model="clr-namespace:MauiDemo.Models"
+    xmlns:vm="clr-namespace:MauiDemo.ViewModels"
+    x:DataType="vm:MainViewModel">
+
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <cov:MultiValueConverter x:Key="mvc" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+
+    <ScrollView>
+        <VerticalStackLayout Padding="10,0" Spacing="25">
+
+            <Grid ColumnDefinitions="auto,*,auto">
+                <Label Text="USB设备ID：" VerticalOptions="Center" />
+                <Picker
+                    x:Name="devicePicker"
+                    Grid.Column="1"
+                    Margin="5,0"
+                    ItemDisplayBinding="{Binding DeviceId}"
+                    ItemsSource="{Binding UsbDeviceInfos}"
+                    SelectedItem="{Binding SelectedDeviceInfo}"
+                    VerticalOptions="Fill" />
+                <Button
+                    Grid.Column="2"
+                    Command="{Binding GetAllCommand}"
+                    Text="获取USB设备" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="auto,auto">
+
+                <StackLayout Grid.Column="0">
+                    <Label Text="波特率：" />
+                    <Picker x:Name="baudRatePicker">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:Int32}">
+                                <x:Int32>9600</x:Int32>
+                                <x:Int32>14400</x:Int32>
+                                <x:Int32>19200</x:Int32>
+                                <x:Int32>38400</x:Int32>
+                                <x:Int32>56000</x:Int32>
+                                <x:Int32>57600</x:Int32>
+                                <x:Int32>115200</x:Int32>
+                                <x:Int32>194000</x:Int32>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </StackLayout>
+
+                <StackLayout Grid.Column="1">
+                    <Label Text="数据位：" />
+                    <Picker x:Name="dataBitsPicker" SelectedIndex="3">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:Byte}">
+                                <x:Byte>5</x:Byte>
+                                <x:Byte>6</x:Byte>
+                                <x:Byte>7</x:Byte>
+                                <x:Byte>8</x:Byte>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </StackLayout>
+
+                <StackLayout Grid.Column="2">
+                    <Label Text="停止位：" />
+                    <Picker x:Name="stopBitsPicker" SelectedIndex="0">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:Byte}">
+                                <x:Byte>1</x:Byte>
+                                <x:Byte>2</x:Byte>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </StackLayout>
+
+                <StackLayout Grid.Column="3">
+                    <Label Text="校验：" />
+                    <Picker x:Name="parityPicker" SelectedIndex="0">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type enums:Parity}">
+                                <enums:Parity>None</enums:Parity>
+                                <enums:Parity>Odd</enums:Parity>
+                                <enums:Parity>Even</enums:Parity>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </StackLayout>
+
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="4"
+                    Command="{Binding ConnectDeviceCommand}"
+                    Text="连接">
+                    <Button.CommandParameter>
+                        <MultiBinding Converter="{StaticResource mvc}">
+                            <Binding Path="SelectedItem" Source="{x:Reference devicePicker}" />
+                            <Binding Path="SelectedItem" Source="{x:Reference baudRatePicker}" />
+                            <Binding Path="SelectedItem" Source="{x:Reference dataBitsPicker}" />
+                            <Binding Path="SelectedItem" Source="{x:Reference stopBitsPicker}" />
+                            <Binding Path="SelectedItem" Source="{x:Reference parityPicker}" />
+                        </MultiBinding>
+                    </Button.CommandParameter>
+                </Button>
+            </Grid>
+
+            <StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Button
+                        Command="{Binding SendCommand}"
+                        CommandParameter="{Binding Source={x:Reference sendEditor}, Path=Text}"
+                        Text="发送" />
+                    <CheckBox IsChecked="{Binding SendHexIsChecked}" />
+                    <Label Text="HEX" VerticalTextAlignment="Center" />
+                </StackLayout>
+                <Editor x:Name="sendEditor" Text="01 01 00 00 00 08 3D CC" />
+            </StackLayout>
+
+            <StackLayout>
+                <StackLayout Orientation="Horizontal">
+                    <Button Command="{Binding ReceiveCommand}" Text="接收" />
+                    <CheckBox IsChecked="{Binding ReceivedHexIsChecked}" />
+                    <Label Text="HEX" VerticalTextAlignment="Center" />
+                </StackLayout>
+                <Editor Text="{Binding ReceivedText}" />
+            </StackLayout>
+
+            <StackLayout>
+                <Label Text="{Binding SelectedDeviceInfo.DeviceName, StringFormat='DeviceName:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.ProductName, StringFormat='ProductName:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.ManufacturerName, StringFormat='ManufacturerName:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.SerialNumber, StringFormat='SerialNumber:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.DeviceId, StringFormat='DeviceId:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.VendorId, StringFormat='VendorId:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.ProductId, StringFormat='ProductId:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.ConfigurationCount, StringFormat='ConfigurationCount:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.Version, StringFormat='Version:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.DeviceProtocol, StringFormat='DeviceProtocol:{0}'}" />
+                <Label Text="{Binding SelectedDeviceInfo.InterfaceCount, StringFormat='InterfaceCount:{0}'}" />
+            </StackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
