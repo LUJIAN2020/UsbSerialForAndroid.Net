@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
+using UsbSerialForAndroid.Net.Exceptions;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
@@ -115,25 +116,27 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// </summary>
         /// <param name="buffer">写入的数据</param>
         /// <returns>写入成功返回写入数据长度，写入失败返回-1</returns>
-        public virtual int Write(byte[] buffer)
+        public virtual void Write(byte[] buffer)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-            return UsbDeviceConnection.BulkTransfer(UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
+            int result = UsbDeviceConnection.BulkTransfer(UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
+            if (result < 0)
+                throw new BulkTransferException("Write failed", result, UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
         }
         /// <summary>
         /// 读
         /// </summary>
         /// <returns>读成功返回读到的数据，读失败返回空</returns>
-        public virtual byte[]? Read()
+        public virtual byte[] Read()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             var buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferLength);
             try
             {
-                int len = UsbDeviceConnection.BulkTransfer(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
-                return len > 0
-                    ? buffer.AsSpan().Slice(0, len).ToArray()
-                    : default;
+                int result = UsbDeviceConnection.BulkTransfer(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
+                return result >= 0
+                    ? buffer.AsSpan().Slice(0, result).ToArray()
+                    : throw new BulkTransferException("Read failed", result, UsbEndpointRead, null, 0, DefaultBufferLength, ReadTimeout);
             }
             finally
             {
@@ -145,25 +148,27 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// </summary>
         /// <param name="buffer">写入的数据</param>
         /// <returns>写入成功返回写入数据长度，写入失败返回-1</returns>
-        public virtual async Task<int> WriteAsync(byte[] buffer)
+        public virtual async Task WriteAsync(byte[] buffer)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-            return await UsbDeviceConnection.BulkTransferAsync(UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
+            int result = await UsbDeviceConnection.BulkTransferAsync(UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
+            if (result < 0)
+                throw new BulkTransferException("Write failed", result, UsbEndpointWrite, buffer, 0, buffer.Length, WriteTimeout);
         }
         /// <summary>
         /// 读（异步）
         /// </summary>
         /// <returns>读成功返回读到的数据，读失败返回空</returns>
-        public virtual async Task<byte[]?> ReadAsync()
+        public virtual async Task<byte[]> ReadAsync()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             var buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferLength);
             try
             {
-                int len = await UsbDeviceConnection.BulkTransferAsync(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
-                return len > 0
-                    ? buffer.AsSpan().Slice(0, len).ToArray()
-                    : default;
+                int result = await UsbDeviceConnection.BulkTransferAsync(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
+                return result >= 0
+                    ? buffer.AsSpan().Slice(0, result).ToArray()
+                    : throw new BulkTransferException("Read failed", result, UsbEndpointRead, null, 0, DefaultBufferLength, ReadTimeout);
             }
             finally
             {
