@@ -1,6 +1,7 @@
 ﻿using Android.Hardware.Usb;
 using System;
 using UsbSerialForAndroid.Net.Enums;
+using UsbSerialForAndroid.Net.Exceptions;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
@@ -244,7 +245,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             byte[] data = new byte[length];
             int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)requestType, request, value, index, data, length, ControlTimeout);
             if (result != length)
-                throw new Exception($"InControlTransfer fail , Result={result} , RequestType:{requestType} Request:{request} Value:{value} Index:{index} Data:{BitConverter.ToString(data ?? Array.Empty<byte>())} Length:{length} Timeout:{DefaultTimeout}");
+                throw new ControlTransferException("InControlTransfer failed", result, requestType, request, value, index, data, length, ControlTimeout);
 
             return data;
         }
@@ -255,7 +256,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             int length = (data == null) ? 0 : data.Length;
             int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)requestType, request, value, index, data, length, ControlTimeout);
             if (result != length)
-                throw new Exception($"OutControlTransfer fail , Result={result} , RequestType:{requestType} Request:{request} Value:{value} Index:{index} Data:{BitConverter.ToString(data ?? Array.Empty<byte>())} Length:{length} Timeout:{DefaultTimeout}");
+                throw new ControlTransferException($"OutControlTransfer failed", result, requestType, request, value, index, data, length, ControlTimeout);
         }
         public override void SetRtsEnable(bool value)
         {

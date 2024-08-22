@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
+using UsbSerialForAndroid.Net.Exceptions;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
@@ -44,12 +45,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             UsbEndpointWrite = UsbInterface.GetEndpoint(1);
 
             Reset();
-
-            int value = (DtrEnable ? ModemControlDtrEnable : ModemControlDtrDisable) | (RtsEnable ? ModemControlRtsEnable : ModemControlRtsDisable);
-            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, ModemControlRequest, value, UsbInterfaceIndex + 1, null, 0, ControlTimeout);
-            if (result != 0)
-                throw new Exception($"Init RTS,DTR failed: result={result}");
-
+            InitRtsDtr();
             SetFlowControl(FlowControl);
 
             var rawDescriptors = UsbDeviceConnection.GetRawDescriptors();
@@ -68,9 +64,20 @@ namespace UsbSerialForAndroid.Net.Drivers
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, RestRequest, ResetAll, UsbInterfaceIndex + 1, null, 0, ControlTimeout);
-            if (result != 0)
-                throw new Exception($"Reset failed: result={result}");
+            int index = UsbInterfaceIndex + 1;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, RestRequest, ResetAll, index, null, 0, ControlTimeout);
+            if (result < 0)
+                throw new ControlTransferException("Reset failed", result, RequestTypeHostToDevice, RestRequest, ResetAll, index, null, 0, ControlTimeout);
+        }
+        private void InitRtsDtr()
+        {
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+
+            int value = (DtrEnable ? ModemControlDtrEnable : ModemControlDtrDisable) | (RtsEnable ? ModemControlRtsEnable : ModemControlRtsDisable);
+            int index = UsbInterfaceIndex + 1;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
+            if (result < 0)
+                throw new ControlTransferException("Init RTS,DTR failed", result, RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
         }
         public void SetFlowControl(FlowControl flowControl)
         {
@@ -96,9 +103,10 @@ namespace UsbSerialForAndroid.Net.Drivers
 
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetFlowControlRequest, value, index, null, 0, WriteTimeout);
-            if (result != 0)
-                throw new Exception($"Set flow control failed: result={result}");
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetFlowControlRequest, value, index, null, 0, ControlTimeout);
+            if (result < 0)
+                throw new ControlTransferException("Set flow control failed", result, RequestTypeHostToDevice, SetFlowControlRequest, value, index, null, 0, ControlTimeout);
+
             FlowControl = flowControl;
         }
         private void SetBaudrate(int baudRate)
@@ -155,9 +163,9 @@ namespace UsbSerialForAndroid.Net.Drivers
 
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetBaudRateRequest, value, index, null, 0, WriteTimeout);
-            if (result != 0)
-                throw new Exception($"Setting baudrate failed: result={result}");
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetBaudRateRequest, value, index, null, 0, ControlTimeout);
+            if (result < 0)
+                throw new ControlTransferException("Setting baudrate failed", result, RequestTypeHostToDevice, SetBaudRateRequest, value, index, null, 0, ControlTimeout);
         }
         private void SetParameter(int baudRate, byte dataBits, StopBits stopBits, Parity parity)
         {
@@ -209,10 +217,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
 
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-
-            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetDataRequest, config, UsbInterfaceIndex + 1, null, 0, WriteTimeout);
-            if (result != 0)
-                throw new Exception($"Setting parameters failed: result={result}");
+            int index = UsbInterfaceIndex + 1;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SetDataRequest, config, index, null, 0, ControlTimeout);
+            if (result < 0)
+                throw new ControlTransferException("Setting parameters failed", result, RequestTypeHostToDevice, SetDataRequest, config, index, null, 0, ControlTimeout);
         }
         public override byte[] Read()
         {
@@ -240,15 +248,11 @@ namespace UsbSerialForAndroid.Net.Drivers
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            int result = UsbDeviceConnection.ControlTransfer(
-                (UsbAddressing)RequestTypeHostToDevice,
-                ModemControlRequest,
-                dtrEnable ? ModemControlDtrEnable : ModemControlDtrDisable,
-                UsbInterfaceIndex + 1,
-                null,
-                0,
-                ControlTimeout);
-            if (result != 0) throw new Exception($"Set DTR failed: result={result}");
+            int value = dtrEnable ? ModemControlDtrEnable : ModemControlDtrDisable;
+            int index = UsbInterfaceIndex + 1;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
+            if (result != 0)
+                throw new ControlTransferException("Set Dtr failed", result, RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
 
             DtrEnable = dtrEnable;
         }
@@ -256,15 +260,12 @@ namespace UsbSerialForAndroid.Net.Drivers
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            int result = UsbDeviceConnection.ControlTransfer(
-                (UsbAddressing)RequestTypeHostToDevice,
-                ModemControlRequest,
-                rtsEnable ? ModemControlRtsEnable : ModemControlRtsDisable,
-                UsbInterfaceIndex + 1,
-                null,
-                0,
-                ControlTimeout);
-            if (result != 0) throw new Exception($"Set DTR failed: result={result}");
+            int value = rtsEnable ? ModemControlRtsEnable : ModemControlRtsDisable;
+            int index = UsbInterfaceIndex + 1;
+
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
+            if (result != 0)
+                throw new ControlTransferException("Set Rts failed", result, RequestTypeHostToDevice, ModemControlRequest, value, index, null, 0, ControlTimeout);
 
             RtsEnable = rtsEnable;
         }

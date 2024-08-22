@@ -1,6 +1,7 @@
 ﻿using Android.Hardware.Usb;
 using System;
 using UsbSerialForAndroid.Net.Enums;
+using UsbSerialForAndroid.Net.Exceptions;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
@@ -54,15 +55,24 @@ namespace UsbSerialForAndroid.Net.Drivers
                 }
             }
 
-            SetConfigSingle(SilabserIcfEnableRquestCode, UartEnable);
+            SetUartEnable();
             SetConfigSingle(SilabserSetMhsRequestCode, McrAll | ControlDtrDisable | ControlRtsDisable);
             SetConfigSingle(SilabserSetBauddivRequestCode, BaudRateGenFreq / DefaultBaudRate);
             SetParameter(baudRate, dataBits, stopBits, parity);
         }
-        private int SetConfigSingle(int request, int value)
+        private void SetUartEnable()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-            return UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, request, value, 0, null, 0, ControlTimeout);
+            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserIcfEnableRquestCode, UartEnable, 0, null, 0, ControlTimeout);
+            if (ret != 0)
+                throw new ControlTransferException("Set uart enable failed", ret, RequestTypeHostToDevice, SilabserIcfEnableRquestCode, UartEnable, 0, null, 0, ControlTimeout);
+        }
+        private void SetConfigSingle(int request, int value)
+        {
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, request, value, 0, null, 0, ControlTimeout);
+            if (ret != 0)
+                throw new ControlTransferException("Set config single error", ret, RequestTypeHostToDevice, request, value, 0, null, 0, ControlTimeout);
         }
         private void SetParameter(int baudRate, byte dataBits, StopBits stopBits, Parity parity)
         {
@@ -108,31 +118,47 @@ namespace UsbSerialForAndroid.Net.Drivers
                     break;
             }
 
-            SetConfigSingle(SilabserSetLineCtlRequestCode, configDataBits);
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserSetLineCtlRequestCode, configDataBits, 0, null, 0, ControlTimeout);
+            if (ret < 0)
+                throw new ControlTransferException("`DataBits` `Parity` `StopBits` set error", ret, RequestTypeHostToDevice, SilabserSetLineCtlRequestCode, configDataBits, 0, null, 0, ControlTimeout);
         }
         private void SetBaudRate(int baudRate)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
 
-            byte[] data = new byte[] {
-                    (byte) ( baudRate & 0xff),
-                    (byte) ((baudRate >> 8 ) & 0xff),
-                    (byte) ((baudRate >> 16) & 0xff),
-                    (byte) ((baudRate >> 24) & 0xff)
-                };
-            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserSetBaudRate, 0, 0, data, 4, ControlTimeout);
+            byte[] data = new byte[]
+            {
+                (byte) ( baudRate & 0xff),
+                (byte) ((baudRate >> 8 ) & 0xff),
+                (byte) ((baudRate >> 16) & 0xff),
+                (byte) ((baudRate >> 24) & 0xff)
+            };
+            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserSetBaudRate, 0, 0, data, data.Length, ControlTimeout);
             if (ret < 0)
-                throw new Exception("Error setting baud rate.");
+                throw new ControlTransferException("Set baud rate error", ret, RequestTypeHostToDevice, SilabserSetBaudRate, 0, 0, data, data.Length, ControlTimeout);
         }
         public override void SetDtrEnable(bool value)
         {
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+
             DtrEnable = value;
-            SetConfigSingle(SilabserSetMhsRequestCode, DtrEnable ? ControlDtrEnable : ControlDtrDisable);
+            int inValue = DtrEnable ? ControlDtrEnable : ControlDtrDisable;
+            int index = 0;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserSetMhsRequestCode, inValue, index, null, 0, ControlTimeout);
+            if (result != 0)
+                throw new ControlTransferException("Set Dtr failed", result, RequestTypeHostToDevice, SilabserSetMhsRequestCode, inValue, index, null, 0, ControlTimeout);
         }
         public override void SetRtsEnable(bool value)
         {
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+
             RtsEnable = value;
-            SetConfigSingle(SilabserSetMhsRequestCode, RtsEnable ? ControlRtsEnable : ControlRtsDisable);
+            int inValue = RtsEnable ? ControlRtsEnable : ControlRtsDisable;
+            int index = 0;
+            int result = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDevice, SilabserSetMhsRequestCode, inValue, index, null, 0, ControlTimeout);
+            if (result != 0)
+                throw new ControlTransferException("Set Rts failed", result, RequestTypeHostToDevice, SilabserSetMhsRequestCode, inValue, index, null, 0, ControlTimeout);
         }
     }
 }
