@@ -7,7 +7,7 @@ namespace AvaloniaDemo
     {
         List<UsbDeviceInfo> GetUsbDeviceInfos();
         void Open(int deviceId, int baudRate, byte dataBits, byte stopBits, byte parity);
-        int Send(byte[] buffer);
+        void Send(byte[] buffer);
         byte[] Receive();
         void Close();
     }
