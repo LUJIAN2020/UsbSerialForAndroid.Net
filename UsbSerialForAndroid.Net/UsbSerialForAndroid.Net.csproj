@@ -7,7 +7,7 @@
 		<SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
 		<AssemblyName>UsbSerialForAndroid.Net</AssemblyName>
 		<Authors>LUJIAN2020</Authors>
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 	</PropertyGroup>
 
 </Project>
