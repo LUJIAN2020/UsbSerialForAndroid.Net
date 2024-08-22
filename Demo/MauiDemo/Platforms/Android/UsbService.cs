@@ -48,12 +48,12 @@ namespace MauiDemo.Platforms.Android
         public byte[] Receive()
         {
             ArgumentNullException.ThrowIfNull(usbDriver);
-            return usbDriver.Read() ?? throw new Exception("没有可读数据");
+            return usbDriver.Read();
         }
-        public int Send(byte[] buffer)
+        public void Send(byte[] buffer)
         {
             ArgumentNullException.ThrowIfNull(usbDriver);
-            return usbDriver.Write(buffer);
+            usbDriver.Write(buffer);
         }
         public void Close()
         {

@@ -64,15 +64,8 @@ namespace MauiDemo.ViewModels
                 var buffer = SendHexIsChecked
                     ? TextToBytes(text)
                     : Encoding.Default.GetBytes(text);
-                int code = usbService.Send(buffer);
-                if (code >= 0)
-                {
-                    ShowMessage($"发送成功,发送长度：{code}");
-                }
-                else
-                {
-                    throw new Exception($"发送失败，code:{code}");
-                }
+                usbService.Send(buffer);
+                ShowMessage("发送成功");
             }
             catch (Exception ex)
             {
