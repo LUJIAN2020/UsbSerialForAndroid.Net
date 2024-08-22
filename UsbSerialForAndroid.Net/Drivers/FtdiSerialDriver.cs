@@ -105,10 +105,9 @@ namespace UsbSerialForAndroid.Net.Drivers
         {
             int divisor, subdivisor, effectiveBaudRate;
             if (baudRate > 3500000)
-            {
                 throw new Exception("Baud rate to high");
-            }
-            else if (baudRate >= 2500000)
+
+            if (baudRate >= 2500000)
             {
                 divisor = 0;
                 subdivisor = 0;
