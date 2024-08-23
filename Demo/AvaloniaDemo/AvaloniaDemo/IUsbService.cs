@@ -10,5 +10,6 @@ namespace AvaloniaDemo
         void Send(byte[] buffer);
         byte[] Receive();
         void Close();
+        bool IsConnected();
     }
 }

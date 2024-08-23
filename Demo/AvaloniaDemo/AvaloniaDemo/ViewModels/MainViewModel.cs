@@ -64,6 +64,11 @@ namespace AvaloniaDemo.ViewModels
             }
         }
 
+        public void TextConnectionCommand()
+        {
+            bool b = usbService is not null && usbService.IsConnected();
+            ShowMessage(b ? "连接" : "未连接");
+        }
         public void SendCommand(string? text)
         {
             try

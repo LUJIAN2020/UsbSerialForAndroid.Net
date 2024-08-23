@@ -62,5 +62,10 @@ namespace AvaloniaDemo.Android
             ArgumentNullException.ThrowIfNull(usbDriver);
             usbDriver.Close();
         }
+
+        public bool IsConnected()
+        {
+            return usbDriver is not null && usbDriver.Connected;
+        }
     }
 }

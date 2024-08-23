@@ -54,6 +54,13 @@ namespace MauiDemo.ViewModels
                 ShowMessage(ex.Message);
             }
         });
+
+        public RelayCommand TextConnectionCommand => new(() =>
+        {
+            bool b = usbService.IsConnected();
+            ShowMessage(b ? "连接" : "未连接");
+        });
+
         public RelayCommand<string?> SendCommand => new((text) =>
         {
             try
