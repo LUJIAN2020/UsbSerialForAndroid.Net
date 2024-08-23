@@ -2,6 +2,7 @@
 using System;
 using UsbSerialForAndroid.Net.Drivers;
 using UsbSerialForAndroid.Net.Enums;
+using UsbSerialForAndroid.Net.Enums.ProductId;
 using UsbSerialForAndroid.Net.Exceptions;
 using UsbSerialForAndroid.Net.Helper;
 using UsbSerialForAndroid.Net.Receivers;
@@ -30,6 +31,7 @@ namespace UsbSerialForAndroid.Net
                 (int)VendorIds.Prolific => new ProlificSerialDriver(usbDevice),
                 (int)VendorIds.QinHeng => new QinHengSerialDriver(usbDevice),
                 (int)VendorIds.SiliconLabs => new SiliconLabsSerialDriver(usbDevice),
+                (int)VendorIds.Arduino => new ArduinoSerialDriver(usbDevice),
                 _ => throw new NotSupportedDriverException(usbDevice)
             };
         }
@@ -115,6 +117,24 @@ namespace UsbSerialForAndroid.Net
                             case SiliconLabs.CP2105:
                             case SiliconLabs.CP2108:
                             case SiliconLabs.CP2110:
+                                return true;
+                        }
+                        break;
+                    }
+                case VendorIds.Arduino:
+                    {
+                        var pid = (Arduino)productId;
+                        switch (pid)
+                        {
+                            case Arduino.Uno:
+                            case Arduino.Mega2560:
+                            case Arduino.SerialAdapter:
+                            case Arduino.MegaADK:
+                            case Arduino.Mega2560R3:
+                            case Arduino.UnoR3:
+                            case Arduino.MegaAdkR3:
+                            case Arduino.SerialR3:
+                            case Arduino.Leonardo:
                                 return true;
                         }
                         break;

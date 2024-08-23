@@ -10,5 +10,6 @@
         Prolific = 0x067B,
         QinHeng = 0x1A86,
         SiliconLabs = 0x10C4,
+        Arduino = 0x2341,
     }
 }
