@@ -37,7 +37,7 @@ namespace AvaloniaDemo.Android
                 DeviceProtocol = item.DeviceProtocol,
                 ConfigurationCount = item.ConfigurationCount,
                 InterfaceCount = item.InterfaceCount,
-                Version = item.Version
+                Version = item.Version//support android23.0
             }).ToList();
         }
         public void Open(int deviceId, int baudRate, byte dataBits, byte stopBits, byte parity)

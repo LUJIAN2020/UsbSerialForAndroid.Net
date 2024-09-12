@@ -1,7 +1,7 @@
 ﻿using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
 using AvaloniaDemo.Enums;
 using AvaloniaDemo.Models;
+using AvaloniaDemo.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
@@ -12,27 +12,30 @@ namespace AvaloniaDemo.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private static IUsbService? usbService => App.GetService<IUsbService>();
+        private readonly NotificationService notificationService;
+        private readonly IUsbService usbService;
+        public MainViewModel(NotificationService notificationService, IUsbService usbService)
+        {
+            this.notificationService = notificationService;
+            this.usbService = usbService;
+        }
         [ObservableProperty] private ObservableCollection<UsbDeviceInfo> usbDeviceInfos = new();
         [ObservableProperty] private string? receivedText;
         [ObservableProperty] private bool sendHexIsChecked = true;
         [ObservableProperty] private bool receivedHexIsChecked = true;
         [ObservableProperty] private UsbDeviceInfo? selectedDeviceInfo;
-
         public void GetAllCommand()
         {
             try
             {
-                ArgumentNullException.ThrowIfNull(usbService);
                 UsbDeviceInfos = new(usbService.GetUsbDeviceInfos());
-                ShowMessage($"USB设备总数：{UsbDeviceInfos.Count}");
+                notificationService.ShowInformation($"USB设备总数：{UsbDeviceInfos.Count}");
             }
             catch (Exception ex)
             {
-                ShowMessage(ex.Message, true);
+                notificationService.ShowError(ex.Message);
             }
         }
-
         public void ConnectDeviceCommand(object[] items)
         {
             try
@@ -50,7 +53,7 @@ namespace AvaloniaDemo.ViewModels
                         var parity = item4.Content?.ToString() ?? Parity.None.ToString();
                         var par = (Parity)Enum.Parse(typeof(Parity), parity);
                         usbService?.Open(usbDeviceInfo.DeviceId, baudRate, dataBits, stopBits, (byte)par);
-                        ShowMessage("连接成功");
+                        notificationService.ShowInformation("连接成功");
                     }
                 }
                 else
@@ -60,10 +63,9 @@ namespace AvaloniaDemo.ViewModels
             }
             catch (Exception ex)
             {
-                ShowMessage(ex.Message, true);
+                notificationService.ShowError(ex.Message);
             }
         }
-
         public void SendCommand(string? text)
         {
             try
@@ -71,43 +73,32 @@ namespace AvaloniaDemo.ViewModels
                 if (string.IsNullOrWhiteSpace(text))
                     throw new Exception("发送内容不能为空");
 
-                ArgumentNullException.ThrowIfNull(usbService);
-
                 var buffer = SendHexIsChecked
                     ? TextToBytes(text)
                     : Encoding.Default.GetBytes(text);
                 usbService.Send(buffer);
-                ShowMessage("发送成功");
+                notificationService.ShowInformation("发送成功");
             }
             catch (Exception ex)
             {
-                ShowMessage(ex.Message, true);
+                notificationService.ShowError(ex.Message);
             }
         }
-
         public void ReceiveCommand()
         {
             try
             {
-                ArgumentNullException.ThrowIfNull(usbService);
                 var buffer = usbService.Receive();
                 ReceivedText = ReceivedHexIsChecked
                     ? string.Join(' ', buffer.Select(c => c.ToString("X2")))
                     : Encoding.Default.GetString(buffer);
-                ShowMessage($"接收成功,接收长度：{buffer.Length}");
+                notificationService.ShowInformation($"接收成功,接收长度：{buffer.Length}");
             }
             catch (Exception ex)
             {
-                ShowMessage(ex.Message, true);
+                notificationService.ShowError(ex.Message);
             }
         }
-
-        private static void ShowMessage(string msg, bool isError = false)
-        {
-            App.NotificationManager?.Show(new Notification("信息", msg,
-                isError ? NotificationType.Error : NotificationType.Information));
-        }
-
         private static byte[] TextToBytes(string hexString)
         {
             var text = hexString.ToUpper();

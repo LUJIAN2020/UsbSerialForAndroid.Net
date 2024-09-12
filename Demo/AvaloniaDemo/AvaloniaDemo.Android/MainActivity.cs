@@ -16,9 +16,14 @@ namespace AvaloniaDemo.Android
     {
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         {
-            App.CurrentServiceCollection.AddSingleton(typeof(IUsbService), new UsbService());
+            App.RegisterPlatformService = OnRegisterPlatformService;
             return base.CustomizeAppBuilder(builder)
                 .WithInterFont();
+        }
+
+        private void OnRegisterPlatformService(IServiceCollection services)
+        {
+            services.AddSingleton<IUsbService, UsbService>();
         }
     }
 }

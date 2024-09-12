@@ -1,8 +1,8 @@
 using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
-using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
-using Avalonia.Media;
+using AvaloniaDemo.Extensions;
+using AvaloniaDemo.Services;
+using AvaloniaDemo.ViewModels;
 
 namespace AvaloniaDemo.Views
 {
@@ -11,23 +11,14 @@ namespace AvaloniaDemo.Views
         public MainView()
         {
             InitializeComponent();
+            DataContext = App.GlobalHost.GetService<MainViewModel>();
         }
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
             var topLevel = TopLevel.GetTopLevel(this);
-            App.NotificationManager = new WindowNotificationManager(topLevel)
-            {
-                Position = NotificationPosition.BottomCenter,
-                MaxItems = 1
-            };
-            
-            var insetsManager = TopLevel.GetTopLevel(this)?.InsetsManager;
-            if (insetsManager is not null)
-            {
-                insetsManager.IsSystemBarVisible = true;
-                insetsManager.SystemBarColor = Colors.Transparent;
-            }
+            var notificationService = App.GlobalHost.GetService<NotificationService>();
+            notificationService?.SetTopLevel(topLevel);
         }
     }
 }
