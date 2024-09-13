@@ -70,6 +70,10 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// 控制数据超时
         /// </summary>
         public int ControlTimeout { get; set; } = DefaultTimeout;
+        /// <summary>
+        /// 是否连接
+        /// </summary>
+        public bool Connected => TestConnection();
         protected UsbDriverBase(UsbDevice _usbDevice)
         {
             UsbDevice = _usbDevice;
@@ -188,6 +192,25 @@ namespace UsbSerialForAndroid.Net.Drivers
                 array[i] = usbDevice.GetInterface(i);
             }
             return array;
+        }
+        /// <summary>
+        /// 测试连接
+        /// </summary>
+        /// <returns></returns>
+        public bool TestConnection()
+        {
+            try
+            {
+                ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+                byte[] buf = new byte[2];
+                const int request = 0;//GET_STATUS
+                int len = UsbDeviceConnection.ControlTransfer(UsbAddressing.DirMask, request, 0, 0, buf, buf.Length, 100);
+                return len == 2;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
