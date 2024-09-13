@@ -89,9 +89,15 @@ namespace AvaloniaDemo.ViewModels
             try
             {
                 var buffer = usbService.Receive();
+                if (buffer is null)
+                {
+                    notificationService.ShowInformation("没有数据可读");
+                    return;
+                }
+
                 ReceivedText = ReceivedHexIsChecked
-                    ? string.Join(' ', buffer.Select(c => c.ToString("X2")))
-                    : Encoding.Default.GetString(buffer);
+                ? string.Join(' ', buffer.Select(c => c.ToString("X2")))
+                : Encoding.Default.GetString(buffer);
                 notificationService.ShowInformation($"接收成功,接收长度：{buffer.Length}");
             }
             catch (Exception ex)

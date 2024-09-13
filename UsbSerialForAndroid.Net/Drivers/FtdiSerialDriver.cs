@@ -222,10 +222,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             if (result < 0)
                 throw new ControlTransferException("Setting parameters failed", result, RequestTypeHostToDevice, SetDataRequest, config, index, null, 0, ControlTimeout);
         }
-        public override byte[] Read()
+        public override byte[]? Read()
         {
             var buffer = base.Read();
-            if (buffer.Length >= ReadHeaderLength)
+            if (buffer?.Length >= ReadHeaderLength)
             {
                 return buffer.AsSpan()
                     .Slice(ReadHeaderLength, buffer.Length - ReadHeaderLength)
@@ -233,10 +233,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             return buffer;
         }
-        public override async Task<byte[]> ReadAsync()
+        public override async Task<byte[]?> ReadAsync()
         {
             var buffer = await base.ReadAsync();
-            if (buffer.Length >= ReadHeaderLength)
+            if (buffer?.Length >= ReadHeaderLength)
             {
                 return buffer.AsSpan()
                     .Slice(ReadHeaderLength, buffer.Length - ReadHeaderLength)

@@ -40,7 +40,7 @@ namespace MauiDemo.ViewModels
                         items[4] is Parity parity)
                     {
 
-                        usbService?.Open(usbDeviceInfo.DeviceId, baudRate, dataBits, stopBits, (byte)parity);
+                        usbService.Open(usbDeviceInfo.DeviceId, baudRate, dataBits, stopBits, (byte)parity);
                         ShowMessage("连接成功");
                     }
                 }
@@ -59,7 +59,6 @@ namespace MauiDemo.ViewModels
             try
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(text);
-                ArgumentNullException.ThrowIfNull(usbService);
 
                 var buffer = SendHexIsChecked
                     ? TextToBytes(text)
@@ -76,8 +75,12 @@ namespace MauiDemo.ViewModels
         {
             try
             {
-                ArgumentNullException.ThrowIfNull(usbService);
                 var buffer = usbService.Receive();
+                if (buffer is null)
+                {
+                    ShowMessage("没有可读的数据");
+                    return;
+                }
                 ReceivedText = ReceivedHexIsChecked
                     ? string.Join(' ', buffer.Select(c => c.ToString("X2")))
                     : Encoding.Default.GetString(buffer);

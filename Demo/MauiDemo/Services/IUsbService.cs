@@ -7,7 +7,7 @@ namespace MauiDemo.Services
         List<UsbDeviceInfo> GetUsbDeviceInfos();
         void Open(int deviceId, int baudRate, byte dataBits, byte stopBits, byte parity);
         void Send(byte[] buffer);
-        byte[] Receive();
+        byte[]? Receive();
         void Close();
     }
 }

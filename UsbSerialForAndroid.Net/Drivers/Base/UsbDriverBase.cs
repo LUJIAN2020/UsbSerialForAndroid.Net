@@ -131,7 +131,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// 读
         /// </summary>
         /// <returns>读成功返回读到的数据，读失败返回空</returns>
-        public virtual byte[] Read()
+        public virtual byte[]? Read()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             var buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferLength);
@@ -140,7 +140,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 int result = UsbDeviceConnection.BulkTransfer(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
                 return result >= 0
                     ? buffer.AsSpan().Slice(0, result).ToArray()
-                    : throw new BulkTransferException("Read failed", result, UsbEndpointRead, null, 0, DefaultBufferLength, ReadTimeout);
+                    : default;
             }
             finally
             {
@@ -163,7 +163,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// 读（异步）
         /// </summary>
         /// <returns>读成功返回读到的数据，读失败返回空</returns>
-        public virtual async Task<byte[]> ReadAsync()
+        public virtual async Task<byte[]?> ReadAsync()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             var buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferLength);
@@ -172,7 +172,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 int result = await UsbDeviceConnection.BulkTransferAsync(UsbEndpointRead, buffer, 0, DefaultBufferLength, ReadTimeout);
                 return result >= 0
                     ? buffer.AsSpan().Slice(0, result).ToArray()
-                    : throw new BulkTransferException("Read failed", result, UsbEndpointRead, null, 0, DefaultBufferLength, ReadTimeout);
+                    : default;
             }
             finally
             {
