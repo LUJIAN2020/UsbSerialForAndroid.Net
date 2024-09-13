@@ -1,7 +1,7 @@
 # UsbSerialForAndroid.Net
 
 ### 👓 介绍
-这是一个Android的USB串口通讯的驱动程序库，支持MAUI、Avalonia的Android平台USB串行硬件进行通信。该库最低支持Android 5.0（API21.0）。由于net6.0-android已经失去支持，所以最低支持net8.0-android。它使用 Android 3.1+ 上可用的 [Android USB Host API](http://developer.android.com/guide/topics/connectivity/usb/host.html)。
+这是一个Android的USB串口通讯的驱动程序库，支持MAUI、Avalonia的Android平台USB串行硬件进行通信。该库最低支持Android 6.0（API23.0）。由于net6.0-android已经失去支持，所以最低支持net8.0-android。它使用 Android 3.1+ 上可用的 [Android USB Host API](http://developer.android.com/guide/topics/connectivity/usb/host.html)。
 
 无需root访问权限、ADK或特殊内核驱动程序;所有驱动程序通过C#实现。根据设备的VendorID 和ProductID 获取DeviceId自动选择适当的驱动程序进行读写。
 

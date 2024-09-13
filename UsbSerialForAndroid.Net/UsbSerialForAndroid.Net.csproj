@@ -4,7 +4,7 @@
 		<TargetFramework>net8.0-android</TargetFramework>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
 		<AssemblyName>UsbSerialForAndroid.Net</AssemblyName>
 		<Authors>LUJIAN2020</Authors>
 		<Version>1.0.1</Version>
