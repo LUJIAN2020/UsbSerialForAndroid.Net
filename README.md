@@ -1,58 +1,60 @@
 # UsbSerialForAndroid.Net
 
-### 👓 介绍
-这是一个Android的USB串口通讯的驱动程序库，支持MAUI、Avalonia的Android平台USB串行硬件进行通信。该库最低支持Android 6.0（API23.0）。由于net6.0-android已经失去支持，所以最低支持net8.0-android。它使用 Android 3.1+ 上可用的 [Android USB Host API](http://developer.android.com/guide/topics/connectivity/usb/host.html)。
+[中文](./README_CN.md)
 
-无需root访问权限、ADK或特殊内核驱动程序;所有驱动程序通过C#实现。根据设备的VendorID 和ProductID 获取DeviceId自动选择适当的驱动程序进行读写。
+### 👓 Introduce
+This is an android USB serial communication driver library . Support MAUI, Avalonia Android platform USB serial hardware for communication . The library supports Android 6.0 (API23.0) as a minimum. Because net6.0-android is no longer supported, net8.0-android is supported at least. It uses Android 3.1+ available on [Android USB Host API](http://developer.android.com/guide/topics/connectivity/usb/host.html)。
 
-本库基于Java实现开源库[usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android)和C#实现开源库[UsbSerialForAndroid](https://github.com/anotherlab/UsbSerialForAndroid)修改而来。
+No root access, ADK, or special kernel drivers required; All drivers are implemented in C#. Obtain the DeviceId based on the VendorID and ProductID of the device. Automatically select an appropriate driver for read and write.
 
-### 💡 使用方法
+This library is based on Java to implement open source library[usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android) and C# implementation of the open source library modification[UsbSerialForAndroid](https://github.com/anotherlab/UsbSerialForAndroid)
 
-如果需要广播接收USB的插入和拔出，这个需要在构造函数内进行注册
+### 💡 How to Use
+
+If you want to broadcast the receiving USB insert and unplug, this needs to be registered in the constructor
 ```
-//注册广播接收器
-//isShowToast=true USB授权后会有Toast显示
-//attached USB添加后的委托
-//detached USB删除后的委托
-//errorCallback 广播接收器内部OnReceive()方法错误回调
+//Registered broadcast receiver
+//isShowToast=true After USB authorization, Toast will be displayed
+//attached USB device added after the delegate
+//detached USB device removed after the delegate
+//errorCallback Broadcast receiver internal OnReceive() method error callback
 UsbDriverFactory.RegisterUsbBroadcastReceiver();
 
-//取消注册广播接收器
+//Unregister the broadcast receiver
 UsbDriverFactory.UnRegisterUsbBroadcastReceiver();
 ```
 
-通过帮助类获取当前所有插入的设备
+Get all currently inserted devices from the help class
 ```
 var usbDevices = UsbManagerHelper.GetAllUsbDevices();
 ```
 
-创建驱动程序，发送和接收数据，创建前会检查是否支持的驱动，如果不支持将抛出异常
+Create a driver, send and receive data, check whether the driver is supported before creation, and throw an exception if it is not supported
 ```
-//通过设备Id（DeviceId）创建
+//This parameter is created using the device Id (DeviceId)
 int deviceId = 0x03EA;
 UsbDriverBase usbDriver = UsbDriverFactory.CreateUsbDriver(deviceId);
 
-//或者通过厂商标识（VendorId）和产品编号（ProductId）创建
+//Or create a VendorId and ProductId
 int vendorId = 0x0403;
 int productId = 0x6001;
 UsbDriverBase usbDriver = UsbDriverFactory.CreateUsbDriver(vendorId,productId);
 
-//打开USB设备，设置通讯参数
+//Open the USB device and set the communication parameters
 usbDriver.Open(115200, 8, StopBits.One, Parity.None);
 
-//发送数据
+//Send data
 var data = new byte[] { 0x01, 0x01, 0x00, 0x00, 0x00, 0x08, 0x3D, 0xCC };
 usbDriver.Write(data);
 
-//接收数据
+//Receive data
 var buffer = usbDriver.Read();
 
-//关闭USB设备
+//Close the USB device
 usbDriver.Close();
 ```
 
-### 🚀支持的驱动
+### 🚀Supported Driver
 
 **Technology Devices International, Ltd**
 
