@@ -47,7 +47,7 @@ namespace AvaloniaDemo.Android
             var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
             usbDriver.Open(baudRate, dataBits, _stopBits, _parity);
         }
-        public byte[] Receive()
+        public byte[]? Receive()
         {
             ArgumentNullException.ThrowIfNull(usbDriver);
             return usbDriver.Read();
@@ -61,6 +61,18 @@ namespace AvaloniaDemo.Android
         {
             ArgumentNullException.ThrowIfNull(usbDriver);
             usbDriver.Close();
+        }
+        public bool IsConnection()
+        {
+            try
+            {
+                if (usbDriver is null) return false;
+                return usbDriver.TestConnection();
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
