@@ -16,40 +16,13 @@ namespace AvaloniaDemo.Services
                 MaxItems = this.MaxItems
             };
         }
-        public void ShowError(string msg)
-        {
-            windowNotificationManager?.Show(new Notification()
-            {
-                Title = "错误",
-                Message = msg,
-                Type = NotificationType.Error
-            });
-        }
-        public void ShowSuccess(string msg)
+        public void ShowMessage(string msg, NotificationType type = NotificationType.Information)
         {
             windowNotificationManager?.Show(new Notification()
             {
                 Title = "消息",
                 Message = msg,
-                Type = NotificationType.Success
-            });
-        }
-        public void ShowInformation(string msg)
-        {
-            windowNotificationManager?.Show(new Notification()
-            {
-                Title = "消息",
-                Message = msg,
-                Type = NotificationType.Information
-            });
-        }
-        public void ShowWarning(string msg)
-        {
-            windowNotificationManager?.Show(new Notification()
-            {
-                Title = "消息",
-                Message = msg,
-                Type = NotificationType.Warning
+                Type = type
             });
         }
     }
