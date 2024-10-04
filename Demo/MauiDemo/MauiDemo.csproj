@@ -18,6 +18,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
 
 		<!-- Display name -->
 		<ApplicationTitle>MauiDemo</ApplicationTitle>

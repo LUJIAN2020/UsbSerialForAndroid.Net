@@ -36,7 +36,10 @@
                     Text="获取USB设备" />
             </Grid>
 
-            <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="auto,auto">
+            <Grid
+                ColumnDefinitions="*,*,*,*"
+                ColumnSpacing="5"
+                RowDefinitions="auto,auto">
 
                 <StackLayout Grid.Column="0">
                     <Label Text="波特率：" />
@@ -98,7 +101,7 @@
                 <Button
                     Grid.Row="1"
                     Grid.Column="0"
-                    Grid.ColumnSpan="4"
+                    Grid.ColumnSpan="2"
                     Command="{Binding ConnectDeviceCommand}"
                     Text="连接">
                     <Button.CommandParameter>
@@ -111,6 +114,14 @@
                         </MultiBinding>
                     </Button.CommandParameter>
                 </Button>
+
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Grid.ColumnSpan="2"
+                    Command="{Binding TestConnectCommand}"
+                    Text="是否连接" />
+
             </Grid>
 
             <StackLayout>

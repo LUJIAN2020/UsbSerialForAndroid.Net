@@ -60,5 +60,17 @@ namespace MauiDemo.Platforms.Android
             ArgumentNullException.ThrowIfNull(usbDriver);
             usbDriver.Close();
         }
+        public bool IsConnection()
+        {
+            try
+            {
+                if (usbDriver is null) return false;
+                return usbDriver.TestConnection();
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

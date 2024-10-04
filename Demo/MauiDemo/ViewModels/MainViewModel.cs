@@ -91,6 +91,11 @@ namespace MauiDemo.ViewModels
                 ShowMessage(ex.Message);
             }
         });
+        public RelayCommand TestConnectCommand => new(() =>
+        {
+            bool b = usbService.IsConnection();
+            ShowMessage(b ? "已连接" : "未连接");
+        });
         private static byte[] TextToBytes(string hexString)
         {
             var text = hexString.ToUpper();

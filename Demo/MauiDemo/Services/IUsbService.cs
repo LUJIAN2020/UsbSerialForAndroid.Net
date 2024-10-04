@@ -9,5 +9,6 @@ namespace MauiDemo.Services
         void Send(byte[] buffer);
         byte[]? Receive();
         void Close();
+        bool IsConnection();
     }
 }

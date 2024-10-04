@@ -129,7 +129,7 @@ namespace AvaloniaDemo.ViewModels
             try
             {
                 bool b = usbService.IsConnection();
-                notificationService.ShowMessage(b ? "连接中" : "未连接");
+                notificationService.ShowMessage(b ? "已连接" : "未连接");
             }
             catch (Exception ex)
             {
