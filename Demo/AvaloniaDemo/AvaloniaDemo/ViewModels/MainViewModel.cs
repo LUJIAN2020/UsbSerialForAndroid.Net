@@ -1,4 +1,5 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
 using AvaloniaDemo.Enums;
 using AvaloniaDemo.Models;
 using AvaloniaDemo.Services;
@@ -29,11 +30,11 @@ namespace AvaloniaDemo.ViewModels
             try
             {
                 UsbDeviceInfos = new(usbService.GetUsbDeviceInfos());
-                notificationService.ShowInformation($"USB设备总数：{UsbDeviceInfos.Count}");
+                notificationService.ShowMessage($"USB设备总数：{UsbDeviceInfos.Count}");
             }
             catch (Exception ex)
             {
-                notificationService.ShowError(ex.Message);
+                notificationService.ShowMessage(ex.Message, NotificationType.Error);
             }
         }
         public void ConnectDeviceCommand(object[] items)
@@ -53,7 +54,7 @@ namespace AvaloniaDemo.ViewModels
                         var parity = item4.Content?.ToString() ?? Parity.None.ToString();
                         var par = (Parity)Enum.Parse(typeof(Parity), parity);
                         usbService?.Open(usbDeviceInfo.DeviceId, baudRate, dataBits, stopBits, (byte)par);
-                        notificationService.ShowInformation("连接成功");
+                        notificationService.ShowMessage("连接成功");
                     }
                 }
                 else
@@ -63,7 +64,7 @@ namespace AvaloniaDemo.ViewModels
             }
             catch (Exception ex)
             {
-                notificationService.ShowError(ex.Message);
+                notificationService.ShowMessage(ex.Message, NotificationType.Error);
             }
         }
         public void SendCommand(string? text)
@@ -77,11 +78,11 @@ namespace AvaloniaDemo.ViewModels
                     ? TextToBytes(text)
                     : Encoding.Default.GetBytes(text);
                 usbService.Send(buffer);
-                notificationService.ShowInformation("发送成功");
+                notificationService.ShowMessage("发送成功");
             }
             catch (Exception ex)
             {
-                notificationService.ShowError(ex.Message);
+                notificationService.ShowMessage(ex.Message, NotificationType.Error);
             }
         }
         public void ReceiveCommand()
@@ -91,18 +92,18 @@ namespace AvaloniaDemo.ViewModels
                 var buffer = usbService.Receive();
                 if (buffer is null)
                 {
-                    notificationService.ShowInformation("没有数据可读");
+                    notificationService.ShowMessage("没有数据可读");
                     return;
                 }
 
                 ReceivedText = ReceivedHexIsChecked
                 ? string.Join(' ', buffer.Select(c => c.ToString("X2")))
                 : Encoding.Default.GetString(buffer);
-                notificationService.ShowInformation($"接收成功,接收长度：{buffer.Length}");
+                notificationService.ShowMessage($"接收成功,接收长度：{buffer.Length}");
             }
             catch (Exception ex)
             {
-                notificationService.ShowError(ex.Message);
+                notificationService.ShowMessage(ex.Message, NotificationType.Error);
             }
         }
         private static byte[] TextToBytes(string hexString)
@@ -122,6 +123,18 @@ namespace AvaloniaDemo.ViewModels
             }
 
             return buffer;
+        }
+        public void TestConnectCommand()
+        {
+            try
+            {
+                bool b = usbService.IsConnection();
+                notificationService.ShowMessage(b ? "连接中" : "未连接");
+            }
+            catch (Exception ex)
+            {
+                notificationService.ShowMessage(ex.Message, NotificationType.Error);
+            }
         }
     }
 }
