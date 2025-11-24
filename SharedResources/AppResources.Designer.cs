@@ -232,7 +232,7 @@ namespace UsbSerialForAndroid.Resources {
         }
         
         /// <summary>
-        ///   查找类似  的本地化字符串。
+        ///   查找类似 Test 的本地化字符串。
         /// </summary>
         public static string test {
             get {

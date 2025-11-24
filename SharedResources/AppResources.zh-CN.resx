@@ -180,4 +180,7 @@
   <data name="Information" xml:space="preserve">
     <value>消息</value>
   </data>
+  <data name="test" xml:space="preserve">
+    <value>测试</value>
+  </data>
 </root>

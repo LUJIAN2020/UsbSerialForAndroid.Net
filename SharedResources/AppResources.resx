@@ -181,6 +181,6 @@
     <value>Information</value>
   </data>
   <data name="test" xml:space="preserve">
-    <value />
+    <value>Test</value>
   </data>
 </root>

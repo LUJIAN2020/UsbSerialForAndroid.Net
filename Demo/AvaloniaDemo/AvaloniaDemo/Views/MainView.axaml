@@ -13,7 +13,7 @@
     x:DataType="vm:MainViewModel"
     mc:Ignorable="d">
 
-	<Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+	<Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" >
 
 		<Grid ColumnDefinitions="Auto,*,Auto">
 
@@ -41,7 +41,7 @@
             RowDefinitions="Auto,Auto">
 
 			<StackPanel Margin="0,0,2.5,0">
-				<TextBlock Text="{x:Static rf:AppResources.BaudRate}：" />
+				<TextBlock Text="{x:Static rf:AppResources.BaudRate}" />
 				<ComboBox
                     x:Name="CbBaudRate"
                     HorizontalAlignment="Stretch"

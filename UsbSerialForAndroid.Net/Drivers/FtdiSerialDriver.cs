@@ -286,7 +286,6 @@ namespace UsbSerialForAndroid.Net.Drivers
             if (result < 0)
                 throw new ControlTransferException("Set Latency Timer failed", result, RequestTypeHostToDevice, SetLatencyTimerRequest, config, index, null, 0, ControlTimeout);
         }
-
         /// https://ftdichip.com/Support/Knowledgebase/index.html?ft_w32_getcommmodemstatus.htm
         /// https://microsin.net/programming/pc/ftdi-d2xx-functions-api.html?ysclid=mhfr8ts7fi434528274
         /// <summary>

@@ -7,11 +7,11 @@
 		<SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
 		<AssemblyName>UsbSerialForAndroid.Net</AssemblyName>
 		<Authors>LUJIAN2020</Authors>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Update="AppResources.Designer.cs">
+	  <Compile Update="Resources\Langs\AppResources.Designer.cs">
 	    <DesignTime>True</DesignTime>
 	    <AutoGen>True</AutoGen>
 	    <DependentUpon>AppResources.resx</DependentUpon>
@@ -19,7 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Update="AppResources.resx">
+	  <EmbeddedResource Update="Resources\Langs\AppResources.resx">
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>AppResources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>

@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Hardware.Usb;
 using Android.Widget;
 using System;
+using UsbSerialForAndroid.Net.Resources.Langs;
 
 namespace UsbSerialForAndroid.Net.Receivers
 {
