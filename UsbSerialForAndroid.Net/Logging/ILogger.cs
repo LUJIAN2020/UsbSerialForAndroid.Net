@@ -12,3 +12,8 @@ public interface ILogger
     void Error(string msg);
     void Error(Exception ex);
 }
+
+public interface IHaveLogger
+{
+    ILogger Logger { get; }
+}

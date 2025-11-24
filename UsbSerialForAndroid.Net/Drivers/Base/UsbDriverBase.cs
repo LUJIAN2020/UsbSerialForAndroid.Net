@@ -12,14 +12,13 @@ using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 using UsbSerialForAndroid.Net.Extensions;
 using UsbSerialForAndroid.Net.Helper;
-using UsbSerialForAndroid.Net.Logging;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
     /// <summary>
     /// USB driver base class
     /// </summary>
-    public abstract class UsbDriverBase
+    public abstract class UsbDriverBase : BaseDisposable
     {
         private static readonly UsbManager usbManager = GetUsbManager();
         public const byte XON = 17;
@@ -27,7 +26,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         public const int DefaultTimeout = 1000;
         public const int DefaultBufferLength = 1024 * 4;
         public const int UsbBufLength = 512; // USB 2.0 High-Speed Endpoints Bulk: 512 bytes maximum
-        public const int UsbBufCount = 8;
+        public const int UsbBufCount = 16;
         public const int DefaultBaudRate = 9600;
         public const byte DefaultDataBits = 8;
         public const StopBits DefaultStopBits = StopBits.One;
@@ -116,7 +115,8 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="dataBits">dataBits</param>
         /// <param name="stopBits">stopBits</param>
         /// <param name="parity">parity</param>
-        public abstract void Open(int baudRate, byte dataBits, StopBits stopBits, Parity parity);
+        public void Open(int baudRate, byte dataBits, StopBits stopBits, Parity parity) =>
+            OpenAsync(baudRate, dataBits, stopBits, parity).AsTask().SynchronousWait();
         /// <summary>
         /// Set DTR enabled
         /// </summary>
@@ -130,16 +130,19 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <summary>
         /// close the usb device
         /// </summary>
-        public virtual async void Close()
+        public void Close() => DisposeAsync().AsTask().SynchronousWait();
+
+        public abstract ValueTask OpenAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity);
+        protected override async ValueTask DisposeAsyncCore()
         {
-            Logger.Trace($"[USBDRIVER]: Close");
+            Logger.Trace($"[USBDRIVER]: DisposeAsync");
             await DeinitBuffersAsync();
             UsbEndpointRead?.Dispose(); UsbEndpointRead = null;
             UsbEndpointWrite?.Dispose(); UsbEndpointWrite = null;
             UsbDeviceConnection?.ReleaseInterface(UsbInterface);
             UsbInterface?.Dispose(); UsbInterface = null;
             UsbDeviceConnection?.Close(); UsbDeviceConnection = null;
-            Logger.Trace($"[USBDRIVER]: Close - Ok");
+            Logger.Trace($"[USBDRIVER]: DisposeAsync - Ok");
         }
         /// <summary>
         /// sync write
@@ -234,8 +237,6 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
         }
 
-        public ILogger Logger = new NullLogger();
-
         public int ReadHeaderLength = 0;
         public FilterDataFn? FilterData;
         public delegate int FilterDataFn(Span<byte> src, Span<byte> dst);
@@ -258,7 +259,6 @@ namespace UsbSerialForAndroid.Net.Drivers
         Channel<NetDirectByteBuffer>? _filterChannel;
         Channel<NetDirectByteBuffer>? _dataChannel;
 
-
         ChannelReader<NetDirectByteBuffer>? _emptyReader;
         ChannelWriter<NetDirectByteBuffer>? _emptyWriter;
         ChannelReader<NetDirectByteBuffer>? _filterReader;
@@ -266,9 +266,9 @@ namespace UsbSerialForAndroid.Net.Drivers
         ChannelReader<NetDirectByteBuffer>? _dataReader;
         ChannelWriter<NetDirectByteBuffer>? _dataWriter;
 
-        protected void InitAsyncBuffers()
+        protected async Task InitBuffersAsync()
         {
-            Logger.Trace($"[USBDRIVER]: Init");
+            Logger.Trace($"[USBDRIVER]: InitAsync");
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
             ArgumentNullException.ThrowIfNull(UsbEndpointRead);
@@ -284,7 +284,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 FullMode = BoundedChannelFullMode.Wait
             });
             // write request queue - free items
-            while (!_writeChannel.Writer.TryWrite(_usbWriteRequest)) ;
+            await _writeChannel.Writer.WriteAsync(_usbWriteRequest);
 
             _readChannel = Channel.CreateBounded<UsbRequest>(new BoundedChannelOptions(1)
             {
@@ -323,19 +323,18 @@ namespace UsbSerialForAndroid.Net.Drivers
             {
                 var newBuf = new NetDirectByteBuffer(UsbBufLength);
                 _allBuffers.Add(newBuf);
-                while (!_emptyWriter.TryWrite(newBuf))
-                    Task.Yield();
+                await _emptyWriter.WriteAsync(newBuf);
             }
             _readerExit = new();
             if (null != FilterData)
                 _filterTask = Task.Run(() => ProcessFilterAsync(_readerExit.Token));
-            _readTask = Task.Run(() => InternalUsbReadAsync(_readerExit.Token));
+            _readTask = Task.Run(() => UsbReadAsync(_readerExit.Token));
             _dispatchTask = Task.Run(() => UsbDispatchAsync(_readerExit.Token));
-            Logger.Trace($"[USBDRIVER]: Init - Ok");
+            Logger.Trace($"[USBDRIVER]: InitAsync - Ok");
         }
         protected async Task DeinitBuffersAsync()
         {
-            Logger.Trace($"[USBDRIVER]: Deinit");
+            Logger.Trace($"[USBDRIVER]: DeinitAsync");
             try
             {
                 // cancel all tasks
@@ -381,7 +380,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 // clear requests
                 Interlocked.Exchange(ref _usbReadRequest, null)?.Dispose();
                 Interlocked.Exchange(ref _usbWriteRequest, null)?.Dispose();
-                Logger.Trace($"[USBDRIVER]: Deinit - Ok");
+                Logger.Trace($"[USBDRIVER]: DeinitAsync - Ok");
             }
             catch (Exception ex)
             {
@@ -472,7 +471,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             Logger.Trace($"[USBDRIVER]: exit UsbDispatchAsync");
         }
-        protected virtual async Task InternalUsbReadAsync(CancellationToken ct = default)
+        protected virtual async Task UsbReadAsync(CancellationToken ct = default)
         {
             NetDirectByteBuffer? buf = null;
             try
@@ -493,23 +492,20 @@ namespace UsbSerialForAndroid.Net.Drivers
                         if (_emptyReader.TryRead(out buf))
                             continue;
                         else
-                            Logger.Trace($"[USBDRIVER]: FIND _emptyReader=0");
-
+                            Logger.Debug($"[USBDRIVER]: FIND _emptyReader=0");
                         buf = Interlocked.Exchange(ref _current, null);
                         if (null != buf)
                             continue;
                         else
-                            Logger.Trace($"[USBDRIVER]: FIND _current=0");
-
+                            Logger.Debug($"[USBDRIVER]: FIND _current=0");
                         if (_dataReader.TryRead(out buf))
                             continue;
                         else
-                            Logger.Trace($"[USBDRIVER]: FIND _dataReader=0");
-
+                            Logger.Debug($"[USBDRIVER]: FIND _dataReader=0");
                         if (_filterReader.TryRead(out buf))
                             continue;
                         else
-                            Logger.Trace($"[USBDRIVER]: FIND _filterReader=0");
+                            Logger.Debug($"[USBDRIVER]: FIND _filterReader=0");
                     }
                     buf.Rewind();
                     //Logger.Trace($"[USBDRIVER]: read requested");
@@ -518,7 +514,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                     ct.ThrowIfCancellationRequested();
                     if (ReadHeaderLength < buf.Position)
                     {
-                        Logger.Trace($"[USBDRIVER]: received {buf.Position}");
+                        Logger.Debug($"[USBDRIVER]: received {buf.Position}");
                         await outQueue.WriteAsync(buf, ct);
                         buf = null;
                     }
@@ -533,7 +529,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 Logger.Error($"[USBDRIVER]: crash {ex}");
                 return;
             }
-            Logger.Trace($"[USBDRIVER]: exit InternalUsbReadAsync");
+            Logger.Trace($"[USBDRIVER]: exit UsbReadAsync");
         }
         public virtual async Task<int> ReadAsync(byte[] dstBuf, int offset, int count, CancellationToken ct = default)
         {
@@ -578,6 +574,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 int rest = count;
                 while (0 < rest)
                 {
+                    ct.ThrowIfCancellationRequested();
                     if (null == wr)
                         wr = await writeRqQueueReader.ReadAsync(ct);// get a free write-request
                     using var buf = new NetDirectByteBuffer(wbuf, offset, int.Min(rest, UsbBufLength));
@@ -587,8 +584,6 @@ namespace UsbSerialForAndroid.Net.Drivers
                     offset += buf.Position;
                     rest -= buf.Position;
                 }
-                if (null != wr)
-                    while (!_writeChannel.Writer.TryWrite(wr)) ;
                 return count - rest;
             }
             catch (OperationCanceledException)
@@ -605,6 +600,15 @@ namespace UsbSerialForAndroid.Net.Drivers
             {
                 Logger.Error($"[USBDRIVER]: write Exception {ex}");
                 throw;
+            }
+            finally
+            {
+                if (null != wr)
+                {
+                    // we will get here from "wr.QueueReq"
+                    // or upon completion of sending
+                    await _writeChannel.Writer.WriteAsync(wr);
+                }
             }
         }
     }

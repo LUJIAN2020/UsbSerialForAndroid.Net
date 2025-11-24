@@ -1,6 +1,7 @@
 ﻿using Android.Hardware.Usb;
 using System;
 using System.Buffers;
+using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 
@@ -30,8 +31,8 @@ namespace UsbSerialForAndroid.Net.Drivers
         public const int SetLatencyTimerRequest = 9; // SET_LATENCY_TIMER_REQUEST
         public const int GetLatencyTimerRequest = 10; // GET_LATENCY_TIMER_REQUEST
 
-        public FtdiSerialDriver(UsbDevice usbDevice) 
-            : base(usbDevice) 
+        public FtdiSerialDriver(UsbDevice usbDevice)
+            : base(usbDevice)
         {
             ReadHeaderLength = 2;
         }
@@ -43,7 +44,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -76,7 +77,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetParameter(baudRate, dataBits, stopBits, parity);
             SetLatency(1);
             FilterData = FilterBuf;
-            InitAsyncBuffers();
+            await InitBuffersAsync();
         }
         /// <summary>
         /// Reset the USB device

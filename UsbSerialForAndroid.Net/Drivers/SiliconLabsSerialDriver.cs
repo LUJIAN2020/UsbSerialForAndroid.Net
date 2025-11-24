@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 
@@ -36,7 +37,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -63,21 +64,20 @@ namespace UsbSerialForAndroid.Net.Drivers
                     }
                 }
             }
-
             SetUartEnabled();
             SetConfigSingle(SilabserSetMhsRequestCode, McrAll | ControlDtrDisable | ControlRtsDisable);
             //SetConfigSingle(SilabserSetBauddivRequestCode, BaudRateGenFreq / DefaultBaudRate);
             SetParameter(baudRate, dataBits, stopBits, parity);
-            InitAsyncBuffers();
+            await InitBuffersAsync();
         }
         /// <summary>
         /// close port
         /// </summary>
-        public override void Close()
+        protected override ValueTask DisposeAsyncCore()
         {
             PurgeHwBuffers(true, true);
             SetConfigSingle(SilabserIcfEnableRquestCode, UartDisable);
-            base.Close();
+            return base.DisposeAsyncCore();
         }
         /// <summary>
         /// Set the UART enabled

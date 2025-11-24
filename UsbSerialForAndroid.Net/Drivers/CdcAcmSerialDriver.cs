@@ -1,6 +1,5 @@
 ﻿using Android.Hardware.Usb;
 using System;
-using System.Buffers;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
@@ -19,7 +18,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         private UsbInterface? controlInterface;
         private UsbEndpoint? controlEndpoint;
         public CdcAcmSerialDriver(UsbDevice usbDevice) : base(usbDevice) { }
-        public override void Open(int baudRate, byte dataBits, StopBits stopBits, Parity parity)
+        public override async ValueTask OpenAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
 
@@ -33,7 +32,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 OpenInterface();
             }
             SetParameters(baudRate, dataBits, stopBits, parity);
-            InitAsyncBuffers();
+            await InitBuffersAsync();
         }
         private void OpenSingleInterface()
         {
@@ -238,12 +237,12 @@ namespace UsbSerialForAndroid.Net.Drivers
             if (result < 0)
                 throw new ControlTransferException("Set parameters failed", result, UsbRtAcm, SetLineCoding, 0, controlIndex, buffer, buffer.Length, ControlTimeout);
         }
-        public override void Close()
+        protected override ValueTask DisposeAsyncCore()
         {
             controlEndpoint?.Dispose(); controlEndpoint = null;
             UsbDeviceConnection?.ReleaseInterface(controlInterface);
             controlInterface?.Dispose(); controlInterface = null;
-            base.Close();
+            return base.DisposeAsyncCore();
         }
         public override void SetDtrEnabled(bool value)
         {

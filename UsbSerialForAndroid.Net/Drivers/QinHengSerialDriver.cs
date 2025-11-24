@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 
@@ -48,7 +49,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -80,10 +81,9 @@ namespace UsbSerialForAndroid.Net.Drivers
                     }
                 }
             }
-
             Initialize();
             SetParameter(baudRate, dataBits, stopBits, parity);
-            InitAsyncBuffers();
+            await InitBuffersAsync();
         }
         /// <summary>
         /// Initialize the device
@@ -182,7 +182,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                     if (ChipVersion > 0x27)
                         index1 |= 0x80; //  BIT(7)
                     ControlOut("Error setting baud rate. #1", CH341_REQ_WRITE_REG, value1, index1);
-                    const int value2 = 0x0f2c; 
+                    const int value2 = 0x0f2c;
                     int index2 = baud[(i * 3) + 2];
                     ControlOut("Error setting baud rate. #2", CH341_REQ_WRITE_REG, value2, index2);
                     return;
