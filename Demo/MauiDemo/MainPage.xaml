@@ -53,6 +53,8 @@
                                 <x:Int32>57600</x:Int32>
                                 <x:Int32>115200</x:Int32>
                                 <x:Int32>194000</x:Int32>
+                                <x:Int32>460800</x:Int32>
+                                <x:Int32>921600</x:Int32>
                             </x:Array>
                         </Picker.ItemsSource>
                     </Picker>
@@ -106,7 +108,7 @@
                     <Button.CommandParameter>
                         <MultiBinding Converter="{StaticResource mvc}">
                             <Binding Source="{x:Reference devicePicker}" Path="SelectedItem"  x:DataType = "Picker"/>   
-                            <Binding Source="{x:Reference baudRatePicker}" Path="SelectedItem"  x:DataType = "Picker "/>
+                            <Binding Source="{x:Reference baudRatePicker}" Path="SelectedItem"  x:DataType = "Picker"/>
                             <Binding Source="{x:Reference dataBitsPicker }" Path="SelectedItem"  x:DataType = "Picker"/>
                             <Binding Source="{x:Reference stopBitsPicker}" Path="SelectedItem"  x:DataType = "Picker"/>
                             <Binding Source="{x:Reference parityPicker}" Path="SelectedItem"  x:DataType = "Picker"/>
@@ -145,6 +147,35 @@
                     <Label Text="HEX" VerticalTextAlignment="Center" />
                 </StackLayout>
                 <Editor Text="{Binding ReceivedText}" />
+            </StackLayout>
+
+            <StackLayout>
+                <Label Text="High load speed test" FontSize="20" 
+                       HorizontalTextAlignment="Center" TextColor="MediumPurple"/>
+
+                <Label Text="Write speed"/>
+                <Editor Text="{Binding WriteSpeed}" />
+                <Label Text="Read speed"/>
+                <Editor Text="{Binding ReadSpeed}" />
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="auto" 
+                      ColumnSpacing="4" RowSpacing="4">
+                    <Button Grid.Row="0" Grid.Column="0" Text="Start" 
+                        Command="{Binding SendReceiveCommand}">
+                        <Button.CommandParameter>
+                            <MultiBinding Converter="{StaticResource mvc}">
+                                <Binding Source="{x:Reference devicePicker}" Path="SelectedItem"  x:DataType = "Picker"/>
+                                <Binding Source="{x:Reference baudRatePicker}" Path="SelectedItem"  x:DataType = "Picker"/>
+                                <Binding Source="{x:Reference dataBitsPicker }" Path="SelectedItem"  x:DataType = "Picker"/>
+                                <Binding Source="{x:Reference stopBitsPicker}" Path="SelectedItem"  x:DataType = "Picker"/>
+                                <Binding Source="{x:Reference parityPicker}" Path="SelectedItem"  x:DataType = "Picker"/>
+                            </MultiBinding>
+                        </Button.CommandParameter>
+                    </Button>
+                    <Button Grid.Row="0" Grid.Column="1" Text="Stop" 
+                        Command="{Binding SendReceiveCancelCommand}">
+                    </Button>
+                </Grid>
             </StackLayout>
 
             <StackLayout>
