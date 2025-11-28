@@ -12,7 +12,7 @@ public partial class IOTestModel : ObservableObject
     [ObservableProperty] public partial string? ReadSpeed { get; set; }
     public IOTestModel() { }
 
-
+    public static TimeSpan UpdatePreiod = TimeSpan.FromMilliseconds(1000);
 
     public async Task StartTestAsync(int deviceId, int baudRate, byte dataBits, byte stopBits, byte parity,
         CancellationToken ct)
@@ -64,12 +64,11 @@ public partial class IOTestModel : ObservableObject
     public const int SampleBufLength = 256;
     public async Task WriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
-        await Task.Delay(10, ct);
         byte[] writeBuf = new byte[SampleBufLength];
         // fill buf
         for (int i = 0; i < writeBuf.Length; i++)
             writeBuf[i] = (byte)i;
-        TimeSpan UpdatePreiod = TimeSpan.FromMilliseconds(1000);
+
         double speed = 0;
         long sentTotal = 0;
         long sentPrev = 0;
@@ -83,14 +82,13 @@ public partial class IOTestModel : ObservableObject
             {
                 double difBytes = sentTotal - sentPrev;
                 speed = (speed + (difBytes / difTime.TotalSeconds)) / 2;
-                WriteSpeed = $"{speed:N0} byte/sec";// {difBytes:N0}  {difTime}
+                WriteSpeed = $"{speed:N0} byte/sec, sent total={sentTotal}";// {difBytes:N0}  {difTime}
                 tickPrev = now;
                 sentPrev = sentTotal;
             }
             if (SampleBufLength != await usbDriver.WriteAsync(writeBuf, 0, writeBuf.Length, ct))
                 throw new Exception("Something write wrong");
             sentTotal += SampleBufLength;
-            //await Task.Delay(1, ct);
         }
     }
     private async Task ReadAsync(UsbDriverBase usbDriver, CancellationToken ct)
@@ -100,7 +98,6 @@ public partial class IOTestModel : ObservableObject
         // fill buf
         for (int i = 0; i < testDataSample.Length; i++)
             testDataSample[i] = (byte)i;
-        TimeSpan UpdatePreiod = TimeSpan.FromMilliseconds(1000);
         double speed = 0;
         long readTotal = 0;
         long readPrev = 0;
@@ -114,7 +111,7 @@ public partial class IOTestModel : ObservableObject
             {
                 double difBytes = readTotal - readPrev;
                 speed = (speed + (difBytes / difTime.TotalSeconds)) / 2;
-                ReadSpeed = $"{speed:N0} byte/sec";// {difBytes:N0}  {difTime}
+                ReadSpeed = $"{speed:N0} byte/sec read total={readTotal}";// {difBytes:N0}  {difTime}
                 tickPrev = now;
                 readPrev = readTotal;
             }
