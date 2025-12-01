@@ -5,11 +5,11 @@ using UsbSerialForAndroid.Net.Logging;
 
 namespace UsbSerialForAndroid.Net.Helper;
 
-public class BaseDisposable : IAnyDisposable, IHaveLogger
+public class BaseDisposable : IAnyDisposable
 {
     private int _isDisposed = 0;
     public bool IsDisposed => 0 != _isDisposed;
-    public ILogger Logger { get; set; } = new LoggerAndroid();
+    public Logger Logger { get; set; } = new(new LoggerAndroid());
 
     ~BaseDisposable()
     {

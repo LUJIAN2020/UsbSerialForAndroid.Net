@@ -236,7 +236,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         }
         public const int UsbBufLength = 256;
         public const int UsbBufCount = 256;
-        public const int UsbRequestCount = UsbBufCount / 4;
+        public const int UsbRequestCount = 64;
 
         public int ReadHeaderLength = 0;
         public FilterDataFn? FilterData;
@@ -257,13 +257,10 @@ namespace UsbSerialForAndroid.Net.Drivers
         Channel<UsbRequest>? _readChannel;
 
         Channel<NetDirectByteBuffer>? _emptyChannel;
-        Channel<NetDirectByteBuffer>? _filterChannel;
         Channel<NetDirectByteBuffer>? _dataChannel;
 
         ChannelReader<NetDirectByteBuffer>? _emptyReader;
         ChannelWriter<NetDirectByteBuffer>? _emptyWriter;
-        ChannelReader<NetDirectByteBuffer>? _filterReader;
-        ChannelWriter<NetDirectByteBuffer>? _filterWriter;
         ChannelReader<NetDirectByteBuffer>? _dataReader;
         ChannelWriter<NetDirectByteBuffer>? _dataWriter;
 
@@ -277,14 +274,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             // initializing queue of empty buffers
             _emptyChannel = Channel.CreateUnbounded<NetDirectByteBuffer>(new UnboundedChannelOptions()
             {
-                SingleReader = false,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false,
-            });
-            // initializing queue of buffers for filtering
-            _filterChannel = Channel.CreateUnbounded<NetDirectByteBuffer>(new UnboundedChannelOptions()
-            {
-                SingleReader = false,
+                SingleReader = true,
                 SingleWriter = true,
                 AllowSynchronousContinuations = false,
             });
@@ -298,8 +288,6 @@ namespace UsbSerialForAndroid.Net.Drivers
 
             _emptyReader = _emptyChannel.Reader;
             _emptyWriter = _emptyChannel.Writer;
-            _filterReader = _filterChannel.Reader;
-            _filterWriter = _filterChannel.Writer;
             _dataReader = _dataChannel.Reader;
             _dataWriter = _dataChannel.Writer;
 
@@ -340,8 +328,6 @@ namespace UsbSerialForAndroid.Net.Drivers
                 usbReadRequest.QueueReq(buf.JavaBuffer);
             }
             _readerExit = new();
-            if (null != FilterData)
-                _filterTask = Task.Run(() => ProcessFilterAsync(_readerExit.Token));
             _readTask = Task.Run(() => PostReadRequestsAsync(_readerExit.Token));
             _dispatchTask = Task.Run(() => UsbDispatchAsync(_readerExit.Token));
             Logger.Trace($"[USBDRIVER]: InitAsync - Ok");
@@ -356,7 +342,6 @@ namespace UsbSerialForAndroid.Net.Drivers
                 _writeChannel?.Writer.Complete();
                 _readChannel?.Writer.Complete();
                 _emptyChannel?.Writer.Complete();
-                _filterChannel?.Writer.Complete();
                 _dataChannel?.Writer.Complete();
                 Interlocked.Exchange(ref _readerExit, null)?.Dispose();
                 // await exit all tasks // clear all tasks
@@ -378,15 +363,12 @@ namespace UsbSerialForAndroid.Net.Drivers
                 // clear all buffers
                 _emptyReader = null;
                 _emptyWriter = null;
-                _filterReader = null;
-                _filterWriter = null;
                 _dataReader = null;
                 _dataWriter = null;
 
                 _writeChannel = null;
                 _readChannel = null;
                 _emptyChannel = null;
-                _filterChannel = null;
                 _dataChannel = null;
                 foreach (var item in _allBuffers)
                     item.Dispose();
@@ -407,69 +389,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 Logger.Error($"[USBDRIVER]: crash {ex}");
             }
         }
-        protected virtual async Task ProcessFilterAsync(CancellationToken ct = default)
-        {
-            NetDirectByteBuffer? buf;
-            try
-            {
-                ArgumentNullException.ThrowIfNull(FilterData);
-                ArgumentNullException.ThrowIfNull(_filterReader);
-                ArgumentNullException.ThrowIfNull(_dataWriter);
-                ArgumentNullException.ThrowIfNull(_emptyWriter);
-                while (!ct.IsCancellationRequested)
-                {
-                    /*
-                    buf = await _filterReader.ReadAsync(ct);
-                    var data = buf.MemBuffer.Span.Slice(0, buf.Position);
-                    buf.Position = FilterData(data, data);
-                    Logger.Debug($"[USBDRIVER]: assembly start buf len={buf.Position}");
 
-                    while (!ct.IsCancellationRequested)
-                    {
-                        var bufNext = await _filterReader.ReadAsync(ct);
-                        int bufEmptyLength = buf.MemBuffer.Length - buf.Position;
-                        if (bufEmptyLength > bufNext.Position)
-                        {
-                            var dst = buf.MemBuffer.Span.Slice(buf.Position, bufEmptyLength);
-                            var src = bufNext.MemBuffer.Span.Slice(0, bufNext.Position);
-                            var add = FilterData(src, dst);
-                            buf.Position += add;
-                            await _emptyWriter.WriteAsync(bufNext, ct);
-                            Logger.Debug($"[USBDRIVER]: assembly add buf len={add}");
-                        }
-                        else
-                        {
-                            Logger.Debug($"[USBDRIVER]: assembly send data={buf.Position}");
-                            await _dataWriter.WriteAsync(buf, ct);
-                            buf = bufNext;
-                            data = buf.MemBuffer.Span.Slice(0, buf.Position);
-                            buf.Position = FilterData(data, data);
-                        }
-                    }
-                    Logger.Debug($"[USBDRIVER]: assembly queue emty send data={buf.Position}");
-                    if (0 < buf.Position)
-                        await _dataWriter.WriteAsync(buf, ct);
-                    else
-                        await _emptyWriter.WriteAsync(buf, ct);
-                    */
-                    if (!_filterReader.TryRead(out buf))
-                        buf = await _filterReader.ReadAsync(ct);
-                    var data = buf.MemBuffer.Span.Slice(0, buf.Position);
-                    buf.Position = FilterData(data, data);
-                    if (0 < buf.Position)
-                        await _dataWriter.WriteAsync(buf, ct);
-                    else
-                        await _emptyWriter.WriteAsync(buf, ct);
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                Logger.Error($"[USBDRIVER]: crash {ex}");
-                return;
-            }
-            Logger.Trace($"[USBDRIVER]: exit ProcessFilter");
-        }
         protected virtual async Task UsbDispatchAsync(CancellationToken ct = default)
         {
             try
@@ -539,9 +459,6 @@ namespace UsbSerialForAndroid.Net.Drivers
             Logger.Debug($"[USBDRIVER]: failed attempt to get from data current");
             if (_dataReader!.TryRead(out buf))
                 return buf;
-            Logger.Debug($"[USBDRIVER]: failed attempt to get from data queue");
-            if (_filterReader!.TryRead(out buf))
-                return buf;
             Logger.Debug($"[USBDRIVER]: failed attempt to get from filter queue");
             return buf;
         }
@@ -558,13 +475,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             UsbRequest? rq;
             try
             {
-                ArgumentNullException.ThrowIfNull(_emptyWriter);
                 ArgumentNullException.ThrowIfNull(_readChannel);
                 ArgumentNullException.ThrowIfNull(_emptyReader);
-                ArgumentNullException.ThrowIfNull(_filterReader);
+                ArgumentNullException.ThrowIfNull(_dataWriter);
                 ArgumentNullException.ThrowIfNull(_dataReader);
-                var outQueue = (null == FilterData) ? _dataWriter : _filterWriter;
-                ArgumentNullException.ThrowIfNull(outQueue);
                 while (!ct.IsCancellationRequested)
                 {
                     rq = await _readChannel.Reader.ReadAsync(ct);
@@ -578,8 +492,8 @@ namespace UsbSerialForAndroid.Net.Drivers
                         {
                             if (ReadHeaderLength < buf.Position)
                             {
-                                Logger.Debug($"[USBDRIVER]: received {buf.Position}");
-                                await outQueue.WriteAsync(buf, ct);
+                                //Logger.Debug($"[USBDRIVER]: received {buf.Position}");
+                                await _dataWriter.WriteAsync(buf, ct);
                                 buf = null;
                             }
                         }
@@ -591,6 +505,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                         buf = TryGetBuffer();
                     }
                     buf.Rewind();
+                    buf.ClientData = null;
                     // associate the request with a buffer and send it to the OS queue
                     rq.ClientData = buf;
                     rq.QueueReq(buf.JavaBuffer);
@@ -609,34 +524,62 @@ namespace UsbSerialForAndroid.Net.Drivers
         }
         public virtual async Task<int> ReadAsync(byte[] dstBuf, int offset, int count, CancellationToken ct = default)
         {
+            Logger.Debug($"[USBDRIVER]: Start read count={count}");
             ArgumentNullException.ThrowIfNull(_emptyWriter);
             ArgumentNullException.ThrowIfNull(_dataReader);
             int readed = 0;
             NetDirectByteBuffer? buf = Interlocked.Exchange(ref _current, null); // try get previos peeked data,
-            if (null == buf && !_dataReader.TryRead(out buf)) // try peek already buffered data,
-                buf = await _dataReader.ReadAsync(ct); // if there is none, do async wait
+            buf ??= await _dataReader.ReadAsync(ct); // if there is none, do async wait
             // get all buffered data, not more than the requested size
             while (!ct.IsCancellationRequested && null != buf)
             {
-                var currLen = int.Min(count, buf.Position);
-                var data = buf.MemBuffer.Span;
-                buf.MemBuffer.Span.Slice(0, currLen).CopyTo(dstBuf.AsSpan(offset));
+                var data = buf.MemBuffer.Span.Slice(0, buf.Position);
+                Logger.Debug($"[USBDRIVER]: data length {buf.Position}");
+                if (null != FilterData && buf.Position > (count - readed))
+                {
+                    buf.Position = FilterData(data, data);
+                    buf.ClientData = true;// filtered
+                    data = buf.MemBuffer.Span.Slice(0, buf.Position);
+                    Logger.Debug($"[USBDRIVER]: filter in buf, filtered Length={buf.Position}");
+                }
+                int currLen;
+                if (null == FilterData || buf.ClientData is true)
+                {
+                    currLen = int.Min(count - readed, buf.Position);
+                    Logger.Debug($"[USBDRIVER]: copy filtered {currLen}");
+                    data.Slice(0, currLen).CopyTo(dstBuf.AsSpan(offset));
+                }
+                else
+                {
+                    currLen = FilterData(data, dstBuf.AsSpan(offset));
+                    Logger.Debug($"[USBDRIVER]: filter copy {currLen}");
+                }
                 readed += currLen;
                 offset += currLen;
-                count -= currLen;
-                var rest = buf.Position - currLen;
-                if (0 < rest)
+                Logger.Debug($"[USBDRIVER]: readed={readed}");
+                if (readed == count)
                 {
-                    data.Slice(currLen, rest).CopyTo(data.Slice(0));
-                    buf.Position = rest;
-                    buf = Interlocked.Exchange(ref _current, buf);
-                    //return readed;
+                    var rest = buf.Position - currLen;
+                    Logger.Debug($"[USBDRIVER]: rest={rest}");
+                    if (0 < rest)
+                    {
+                        data.Slice(currLen, rest).CopyTo(data.Slice(0, rest));
+                        buf.Position = rest;
+                        buf = Interlocked.Exchange(ref _current, buf);
+                    }
+                    else
+                    {
+                        await _emptyWriter.WriteAsync(buf, ct);
+                        buf = null;
+                    }
                 }
                 else
                 {
                     await _emptyWriter.WriteAsync(buf, ct);
                     _dataReader.TryRead(out buf);
                 }
+                // _emptyReader!.Count does not work on single reader
+                //Logger.Trace($"[USBDRIVER]: net buf={buf} data={_dataReader.Count} , free={_emptyReader!.Count}");
             }
             return readed;
         }
@@ -691,19 +634,13 @@ namespace UsbSerialForAndroid.Net.Drivers
         public async void FlushAsync(CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(_emptyWriter);
-            ArgumentNullException.ThrowIfNull(_filterReader);
             ArgumentNullException.ThrowIfNull(_dataReader);
-            Task t1 = Task.Run(async () =>
-            {
-                await foreach (var item in _filterReader.ReadAllAsync(ct))
-                    await _emptyWriter.WriteAsync(item, ct);
-            }, ct);
             Task t2 = Task.Run(async () =>
             {
                 await foreach (var item in _dataReader.ReadAllAsync(ct))
                     await _emptyWriter.WriteAsync(item, ct);
             }, ct);
-            await Task.WhenAll(t1, t2);
+            await t2;
         }
     }
 }

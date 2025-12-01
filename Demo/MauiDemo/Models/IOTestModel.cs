@@ -47,7 +47,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ReadSpeed = $"{ex.Message}";
+            usbDriver.Logger.Error($"{ex}");
         }
     }
     public async Task ExecWriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
@@ -58,7 +58,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            WriteSpeed = $"{ex.Message}";
+            usbDriver.Logger.Error($"{ex}");
         }
     }
     public const int SampleBufLength = 256;

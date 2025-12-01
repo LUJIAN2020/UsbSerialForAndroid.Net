@@ -10,6 +10,7 @@ namespace UsbSerialForAndroid.Net.Helper;
 
 public class NetDirectByteBuffer : Java.Lang.Object, IDisposable
 {
+    public object? ClientData;
     /// <summary>
     /// it`s not copy its just wrapper for array
     /// </summary>

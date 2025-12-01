@@ -55,6 +55,8 @@
                                 <x:Int32>194000</x:Int32>
                                 <x:Int32>460800</x:Int32>
                                 <x:Int32>921600</x:Int32>
+                                <x:Int32>1843200</x:Int32>
+                                <x:Int32>2000000</x:Int32>
                             </x:Array>
                         </Picker.ItemsSource>
                     </Picker>
