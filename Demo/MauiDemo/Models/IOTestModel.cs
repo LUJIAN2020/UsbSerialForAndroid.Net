@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using UsbSerialForAndroid.Net;
 using UsbSerialForAndroid.Net.Drivers;
+using UsbSerialForAndroid.Net.Logging;
 
 namespace MauiDemo.Models;
 
@@ -18,6 +19,7 @@ public partial class IOTestModel : ObservableObject
         CancellationToken ct)
     {
         using var usbDriver = UsbDriverFactory.CreateUsbDriver(deviceId);
+        usbDriver.Logger = new LoggerAndroid();
         var _stopBits = (UsbSerialForAndroid.Net.Enums.StopBits)stopBits;
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);

@@ -2,7 +2,7 @@
 
 namespace UsbSerialForAndroid.Net.Logging;
 
-public class NullLogger : ILogger
+public class LoggerNull : ILogger
 {
     public void Debug(string msg) { }
     public void Error(string msg) { }

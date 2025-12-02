@@ -9,7 +9,7 @@ public class BaseDisposable : IAnyDisposable
 {
     private int _isDisposed = 0;
     public bool IsDisposed => 0 != _isDisposed;
-    public Logger Logger { get; set; } = new(new LoggerAndroid());
+    public ILogger Logger = new LoggerNull();
 
     ~BaseDisposable()
     {
