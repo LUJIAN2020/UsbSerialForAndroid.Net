@@ -1,5 +1,4 @@
 ﻿using System;
-using UsbSerialForAndroid.Net.Logging;
 
 namespace UsbSerialForAndroid.Net.Helper;
 

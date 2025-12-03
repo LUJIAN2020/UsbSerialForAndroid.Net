@@ -23,23 +23,7 @@ public partial class IOTestModel : ObservableObject
         var _stopBits = (UsbSerialForAndroid.Net.Enums.StopBits)stopBits;
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);
-        await Flush(usbDriver, ct);
         await Task.WhenAny(ExecReadAsync(usbDriver, ct), ExecWriteAsync(usbDriver, ct));
-    }
-    public async Task Flush(UsbDriverBase usbDriver, CancellationToken ct)
-    {
-        try
-        {
-            // flush all from ic
-            byte[] buf = new byte[SampleBufLength];
-            using var toCt = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            toCt.CancelAfter(500);
-            int currReadLen = await usbDriver.ReadAsync(buf, 0, SampleBufLength, toCt.Token);
-        }
-        catch (Exception)
-        {
-            //ReadSpeed = $"{ex.Message}";
-        }
     }
     public async Task ExecReadAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
