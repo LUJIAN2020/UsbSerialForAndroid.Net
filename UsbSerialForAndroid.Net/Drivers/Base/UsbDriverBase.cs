@@ -10,7 +10,6 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
-using UsbSerialForAndroid.Net.Extensions;
 using UsbSerialForAndroid.Net.Helper;
 using UsbSerialForAndroid.Net.Logging;
 
@@ -237,6 +236,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         }
         public const int UsbBufLength = 256;
         public const int UsbRequestCount = 64;
+        public const int UsbMinRequestCount = 4;
 
         public int ReadHeaderLength = 0;
         public FilterDataFn? FilterData;
@@ -386,7 +386,16 @@ namespace UsbSerialForAndroid.Net.Drivers
                     if (ReferenceEquals(dataRq.Endpoint, UsbEndpointRead))
                     {
                         if (ReadHeaderLength < ((NetDirectByteBuffer?)dataRq.ClientData!).Position)
+                        {
                             await dataRqWriter.WriteAsync(dataRq, ct);
+                            // if _dataRqChannel is full, deqeue from the beginning of the queue
+                            // we'll leave a reserve of UsbMinRequestCount(4) active requests in the OS queue.
+                            if (UsbRequestCount - UsbMinRequestCount < _dataRqChannel.Reader.Count)
+                            {
+                                dataRq = await _dataRqChannel.Reader.ReadAsync(ct);
+                                await sendRqWriter.WriteAsync(dataRq, ct);
+                            }
+                        }
                         else
                             await sendRqWriter.WriteAsync(dataRq, ct);
                         continue;
@@ -429,7 +438,9 @@ namespace UsbSerialForAndroid.Net.Drivers
                             buf.Rewind();
                             buf.ClientData = null;
                         }
-                        sendRq.QueueReq(buf.JavaBuffer);
+                        if (!(OperatingSystem.IsAndroidVersionAtLeast(26) ?
+                            sendRq.Queue(buf.JavaBuffer) : sendRq.Queue(buf.JavaBuffer, buf.JavaBuffer.Capacity())))
+                            throw new Java.IO.IOException("Error queueing request.");
                     }
                     else
                         Logger.Error($"[USBDRIVER]: brocken emptyRq");
