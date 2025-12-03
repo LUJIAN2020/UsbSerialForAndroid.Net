@@ -73,11 +73,11 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <summary>
         /// close port
         /// </summary>
-        protected override ValueTask DisposeAsyncCore()
+        public override Task CloseAsync()
         {
             PurgeHwBuffers(true, true);
             SetConfigSingle(SilabserIcfEnableRquestCode, UartDisable);
-            return base.DisposeAsyncCore();
+            return base.CloseAsync();
         }
         /// <summary>
         /// Set the UART enabled

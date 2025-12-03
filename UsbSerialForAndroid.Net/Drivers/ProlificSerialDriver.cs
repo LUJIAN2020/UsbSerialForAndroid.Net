@@ -130,10 +130,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetParameter(baudRate, dataBits, stopBits, parity);
             await InitBuffersAsync();
         }
-        protected override ValueTask DisposeAsyncCore()
+        public override Task CloseAsync()
         {
             UsbEndpointInterupt?.Dispose(); UsbEndpointInterupt = null;
-            return base.DisposeAsyncCore();
+            return base.CloseAsync();
         }
         /// <summary>
         /// Set parameter

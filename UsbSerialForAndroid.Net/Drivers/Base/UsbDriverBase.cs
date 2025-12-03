@@ -115,6 +115,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="parity">parity</param>
         public void Open(int baudRate, byte dataBits, StopBits stopBits, Parity parity) =>
             OpenAsync(baudRate, dataBits, stopBits, parity).AsTask().SynchronousWait();
+        public abstract ValueTask OpenAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity);
         /// <summary>
         /// Set DTR enabled
         /// </summary>
@@ -128,19 +129,21 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <summary>
         /// close the usb device
         /// </summary>
-        public void Close() => DisposeAsync().AsTask().SynchronousWait();
-
-        public abstract ValueTask OpenAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity);
-        protected override async ValueTask DisposeAsyncCore()
+        public void Close() => CloseAsync().SynchronousWait();
+        public async virtual Task CloseAsync()
         {
-            Logger.TraceCond($"[USBDRIVER]: DisposeAsync");
+            Logger.TraceCond($"[USBDRIVER]: CloseAsync");
             await DeinitBuffersAsync();
             UsbEndpointRead?.Dispose(); UsbEndpointRead = null;
             UsbEndpointWrite?.Dispose(); UsbEndpointWrite = null;
             UsbDeviceConnection?.ReleaseInterface(UsbInterface);
             UsbInterface?.Dispose(); UsbInterface = null;
             UsbDeviceConnection?.Close(); UsbDeviceConnection = null;
-            Logger.TraceCond($"[USBDRIVER]: DisposeAsync - Ok");
+            Logger.TraceCond($"[USBDRIVER]: CloseAsync - Ok");
+        }
+        protected async override ValueTask DisposeAsyncCore()
+        {
+            await CloseAsync();
         }
         /// <summary>
         /// sync write

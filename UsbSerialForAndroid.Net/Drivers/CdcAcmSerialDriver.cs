@@ -3,7 +3,6 @@ using System;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
-using UsbSerialForAndroid.Net.Extensions;
 
 namespace UsbSerialForAndroid.Net.Drivers
 {
@@ -62,6 +61,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         private int GetFirstInterfaceIdFromDescriptors()
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+            /* doesn't work, needs to deal with upstream
             var descriptors = UsbDeviceConnection.GetDescriptors();
 
             if (descriptors.Count > 0 &&
@@ -87,6 +87,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                     }
                 }
             }
+            */
             return -1;
         }
 
@@ -237,12 +238,12 @@ namespace UsbSerialForAndroid.Net.Drivers
             if (result < 0)
                 throw new ControlTransferException("Set parameters failed", result, UsbRtAcm, SetLineCoding, 0, controlIndex, buffer, buffer.Length, ControlTimeout);
         }
-        protected override ValueTask DisposeAsyncCore()
+        public override Task CloseAsync()
         {
             controlEndpoint?.Dispose(); controlEndpoint = null;
             UsbDeviceConnection?.ReleaseInterface(controlInterface);
             controlInterface?.Dispose(); controlInterface = null;
-            return base.DisposeAsyncCore();
+            return base.CloseAsync();
         }
         public override void SetDtrEnabled(bool value)
         {
