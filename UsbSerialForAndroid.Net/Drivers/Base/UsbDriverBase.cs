@@ -383,7 +383,21 @@ namespace UsbSerialForAndroid.Net.Drivers
                     {
                         Logger.Warning($"[USBDRIVER]: response is null");
                         if (!TestConnection())
-                            await Task.Run(Close, ct);
+                        {
+                            Logger.Error($"[USBDRIVER]: device disconnected - close port");
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await CloseAsync();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error($"[USBDRIVER]: close disconnected {ex}");
+                                }
+                            }, ct);
+                            break;
+                        }
                         continue;
                     }
                     if (ReferenceEquals(dataRq.Endpoint, UsbEndpointRead))
