@@ -367,7 +367,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 {
                     try
                     {
-                        dataRq = await UsbDeviceConnection.RequestWaitAsync();
+                        dataRq = await UsbDeviceConnection.RequestWaitAsync().WaitAsync(ct);
                     }
                     catch (Java.Lang.IllegalArgumentException iEx)
                     {
@@ -415,7 +415,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 Logger.Error($"[USBDRIVER]: crash {ex}");
                 return;
             }
-            Logger.TraceCond($"[USBDRIVER]: exit UsbDispatchAsync");
+            Logger.TraceCond($"[USBDRIVER]: exit UsbReceiveAsync");
         }
         /// <summary>
         /// receives requests
