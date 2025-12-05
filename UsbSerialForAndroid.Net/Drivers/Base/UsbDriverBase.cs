@@ -465,60 +465,76 @@ namespace UsbSerialForAndroid.Net.Drivers
             var sendRqWriter = _sendRqChannel.Writer;
             var dataRqReader = _dataRqChannel.Reader;
             int readed = 0;
-            UsbRequest? rq = Interlocked.Exchange(ref _current, null); // try get previos peeked data,
-            rq ??= await dataRqReader.ReadAsync(ct); // if there is none, do async wait
-            // get all buffered data, not more than the requested size
-            while (!ct.IsCancellationRequested && rq?.ClientData is NetDirectByteBuffer buf)
+            UsbRequest? rq = null;
+            try
             {
-                var data = buf.MemBuffer.Span.Slice(0, buf.Position);
-                Logger.DebugCond($"[USBDRIVER]: data length {buf.Position}");
-                if (null != FilterData && buf.Position > (count - readed))
+                rq = Interlocked.Exchange(ref _current, null); // try get previos peeked data,
+                rq ??= await dataRqReader.ReadAsync(ct); // if there is none, do async wait
+                // get all buffered data, not more than the requested size
+                while (!ct.IsCancellationRequested && rq?.ClientData is NetDirectByteBuffer buf)
                 {
-                    buf.Position = FilterData(data, data);
-                    buf.ClientData = true;// filtered
-                    data = buf.MemBuffer.Span.Slice(0, buf.Position);
-                    Logger.DebugCond($"[USBDRIVER]: filter in buf, filtered Length={buf.Position}");
-                }
-                int currLen;
-                if (null == FilterData || buf.ClientData is true)
-                {
-                    currLen = int.Min(count - readed, buf.Position);
-                    Logger.DebugCond($"[USBDRIVER]: copy filtered {currLen}");
-                    data.Slice(0, currLen).CopyTo(dstBuf.AsSpan(offset));
-                }
-                else
-                {
-                    currLen = FilterData(data, dstBuf.AsSpan(offset));
-                    Logger.DebugCond($"[USBDRIVER]: filter copy {currLen}");
-                }
-                readed += currLen;
-                offset += currLen;
-                Logger.DebugCond($"[USBDRIVER]: readed={readed}");
-                if (readed == count)
-                {
-                    var rest = buf.Position - currLen;
-                    Logger.DebugCond($"[USBDRIVER]: rest={rest}");
-                    if (0 < rest)
+                    var data = buf.MemBuffer.Span.Slice(0, buf.Position);
+                    Logger.DebugCond($"[USBDRIVER]: data length {buf.Position}");
+                    if (null != FilterData && buf.Position > (count - readed))
                     {
-                        data.Slice(currLen, rest).CopyTo(data.Slice(0, rest));
-                        buf.Position = rest;
-                        rq = Interlocked.Exchange(ref _current, rq);
+                        buf.Position = FilterData(data, data);
+                        buf.ClientData = true;// filtered
+                        data = buf.MemBuffer.Span.Slice(0, buf.Position);
+                        Logger.DebugCond($"[USBDRIVER]: filter in buf, filtered Length={buf.Position}");
+                    }
+                    int currLen;
+                    if (null == FilterData || buf.ClientData is true)
+                    {
+                        currLen = int.Min(count - readed, buf.Position);
+                        Logger.DebugCond($"[USBDRIVER]: copy filtered {currLen}");
+                        data.Slice(0, currLen).CopyTo(dstBuf.AsSpan(offset));
+                    }
+                    else
+                    {
+                        currLen = FilterData(data, dstBuf.AsSpan(offset));
+                        Logger.DebugCond($"[USBDRIVER]: filter copy {currLen}");
+                    }
+                    readed += currLen;
+                    offset += currLen;
+                    Logger.DebugCond($"[USBDRIVER]: readed={readed}");
+                    if (readed == count)
+                    {
+                        var rest = buf.Position - currLen;
+                        Logger.DebugCond($"[USBDRIVER]: rest={rest}");
+                        if (0 < rest)
+                        {
+                            data.Slice(currLen, rest).CopyTo(data.Slice(0, rest));
+                            buf.Position = rest;
+                            rq = Interlocked.Exchange(ref _current, rq);
+                        }
+                        else
+                        {
+                            await sendRqWriter.WriteAsync(rq, ct);
+                            rq = null;
+                        }
                     }
                     else
                     {
                         await sendRqWriter.WriteAsync(rq, ct);
-                        rq = null;
+                        dataRqReader.TryRead(out rq);
                     }
+                    // _emptyReader!.Count does not work on single reader
+                    //Logger.TraceCond($"[USBDRIVER]: net buf={buf} data={_dataReader.Count} , free={_emptyReader!.Count}");
                 }
-                else
-                {
-                    await sendRqWriter.WriteAsync(rq, ct);
-                    dataRqReader.TryRead(out rq);
-                }
-                // _emptyReader!.Count does not work on single reader
-                //Logger.TraceCond($"[USBDRIVER]: net buf={buf} data={_dataReader.Count} , free={_emptyReader!.Count}");
+                return readed;
             }
-            return readed;
+            catch (Exception ex)
+            {
+                Logger.Error($"[USBDRIVER]: write Exception {ex}");
+                throw;
+            }
+            finally
+            {
+                if (null != rq)
+                {
+                    await sendRqWriter.WriteAsync(rq, CancellationToken.None);
+                }
+            }
         }
         public virtual async Task<int> WriteAsync(byte[] wbuf, int offset, int count, CancellationToken ct = default)
         {
@@ -567,7 +583,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 {
                     // we will get here from "wr.QueueReq"
                     // or upon completion of sending
-                    await _writeChannel.Writer.WriteAsync(wr);
+                    await _writeChannel.Writer.WriteAsync(wr, CancellationToken.None);
                 }
             }
         }
