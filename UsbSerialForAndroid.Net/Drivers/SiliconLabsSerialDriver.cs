@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
@@ -73,11 +74,11 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <summary>
         /// close port
         /// </summary>
-        public override Task CloseAsync()
+        public override Task CloseAsync(List<Exception>? errors = null)
         {
             PurgeHwBuffers(true, true);
             SetConfigSingle(SilabserIcfEnableRquestCode, UartDisable);
-            return base.CloseAsync();
+            return base.CloseAsync(errors);
         }
         /// <summary>
         /// Set the UART enabled

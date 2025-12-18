@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
@@ -238,12 +239,12 @@ namespace UsbSerialForAndroid.Net.Drivers
             if (result < 0)
                 throw new ControlTransferException("Set parameters failed", result, UsbRtAcm, SetLineCoding, 0, controlIndex, buffer, buffer.Length, ControlTimeout);
         }
-        public override Task CloseAsync()
+        public override Task CloseAsync(List<Exception>? errors = null)
         {
             controlEndpoint?.Dispose(); controlEndpoint = null;
             UsbDeviceConnection?.ReleaseInterface(controlInterface);
             controlInterface?.Dispose(); controlInterface = null;
-            return base.CloseAsync();
+            return base.CloseAsync(errors);
         }
         public override void SetDtrEnabled(bool value)
         {

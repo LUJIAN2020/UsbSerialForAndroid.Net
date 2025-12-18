@@ -130,10 +130,17 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// close the usb device
         /// </summary>
         public void Close() => CloseAsync().SynchronousWait();
-        public async virtual Task CloseAsync()
+        public async virtual Task CloseAsync(List<Exception>? errors = null)
         {
             Logger.TraceCond($"[USBDRIVER]: CloseAsync");
-            await DeinitBuffersAsync();
+            try
+            {
+                await DeinitBuffersAsync();
+            }
+            catch (Exception ex)
+            {
+                errors?.Add(ex);
+            }
             UsbEndpointRead?.Dispose(); UsbEndpointRead = null;
             UsbEndpointWrite?.Dispose(); UsbEndpointWrite = null;
             UsbDeviceConnection?.ReleaseInterface(UsbInterface);
@@ -301,12 +308,19 @@ namespace UsbSerialForAndroid.Net.Drivers
             StartProcessingTasks();
             Logger.TraceCond($"[USBDRIVER]: InitAsync - Ok");
         }
-        protected async Task DeinitBuffersAsync()
+        protected async Task DeinitBuffersAsync(List<Exception>? errors = null)
         {
             Logger.TraceCond($"[USBDRIVER]: DeinitAsync");
             try
             {
                 await StopProcessingTasks();
+            }
+            catch (Exception ex)
+            {
+                errors?.Add(ex);
+            }
+            try
+            {
                 Interlocked.Exchange(ref _writeChannel, null)?.Writer.Complete();
                 Interlocked.Exchange(ref _dataRqChannel, null)?.Writer.Complete();
                 Interlocked.Exchange(ref _sendRqChannel, null)?.Writer.Complete();
@@ -326,7 +340,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             catch (Exception ex)
             {
-                Logger.Error($"[USBDRIVER]: crash {ex}");
+                errors?.Add(ex); // unexpected errors
             }
         }
         private void StartProcessingTasks()
@@ -335,101 +349,122 @@ namespace UsbSerialForAndroid.Net.Drivers
             _sendTask = Task.Run(() => UsbSendAsync(_processUsbTasksToken.Token));
             _receiveTask = Task.Run(() => UsbReceiveAsync(_processUsbTasksToken.Token));
         }
+        private void ThrowIfNotStartedOrFaulted()
+        {
+            ArgumentNullException.ThrowIfNull(_receiveTask);
+            ArgumentNullException.ThrowIfNull(_sendTask);
+            if (_receiveTask.IsFaulted)
+                throw _receiveTask.Exception;
+            if (_sendTask.IsFaulted)
+                throw _sendTask.Exception;
+        }
         private async Task StopProcessingTasks()
         {
             _processUsbTasksToken?.Cancel();
             // await exit all tasks // clear all tasks
+            List<Exception> exceptions = [];
             if (null != _receiveTask)
             {
-                await _receiveTask;
+                try
+                {
+                    await _receiveTask;
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex); // mostly when device disconnected, or unexpected errors
+                }
                 _receiveTask = null;
             }
             if (null != _sendTask)
             {
-                await _sendTask;
+                try
+                {
+                    await _sendTask;
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex); // mostly when device disconnected, or unexpected errors
+                }
                 _sendTask = null;
             }
-            _processUsbTasksToken = null;
+            Interlocked.Exchange(ref _processUsbTasksToken, null)?.Dispose();
+            if (exceptions.Count > 0)
+                throw new AggregateException(exceptions);
         }
         protected virtual async Task UsbReceiveAsync(CancellationToken ct = default)
         {
-            try
+            ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
+            ArgumentNullException.ThrowIfNull(_writeChannel);
+            ArgumentNullException.ThrowIfNull(_dataRqChannel);
+            ArgumentNullException.ThrowIfNull(_sendRqChannel);
+            var wr = _writeChannel.Writer;
+            var dataRqWriter = _dataRqChannel.Writer;
+            var sendRqWriter = _sendRqChannel.Writer;
+            UsbRequest? dataRq = null;
+            while (!ct.IsCancellationRequested)
             {
-                ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-                ArgumentNullException.ThrowIfNull(_writeChannel);
-                ArgumentNullException.ThrowIfNull(_dataRqChannel);
-                ArgumentNullException.ThrowIfNull(_sendRqChannel);
-                var wr = _writeChannel.Writer;
-                var dataRqWriter = _dataRqChannel.Writer;
-                var sendRqWriter = _sendRqChannel.Writer;
-                UsbRequest? dataRq = null;
-                while (!ct.IsCancellationRequested)
+                try
                 {
-                    try
+                    dataRq = await UsbDeviceConnection.RequestWaitAsync().WaitAsync(ct);
+                }
+                catch (Java.Lang.IllegalArgumentException iEx)
+                {
+                    Logger.Warning($"[USBDRIVER]: IllegalArgumentException {iEx}");
+                    continue;
+                }
+                catch (BufferOverflowException boEx)
+                {
+                    Logger.Warning($"[USBDRIVER]: BufferOverflowException {boEx}");
+                    continue;
+                }
+                if (null == dataRq)
+                {
+                    Logger.Warning($"[USBDRIVER]: response is null");
+                    if (!TestConnection())
                     {
-                        dataRq = await UsbDeviceConnection.RequestWaitAsync().WaitAsync(ct);
-                    }
-                    catch (Java.Lang.IllegalArgumentException iEx)
-                    {
-                        Logger.Warning($"[USBDRIVER]: IllegalArgumentException {iEx}");
-                        continue;
-                    }
-                    catch (BufferOverflowException boEx)
-                    {
-                        Logger.Warning($"[USBDRIVER]: BufferOverflowException {boEx}");
-                        continue;
-                    }
-                    if (null == dataRq)
-                    {
-                        Logger.Warning($"[USBDRIVER]: response is null");
-                        if (!TestConnection())
+                        Logger.Warning($"[USBDRIVER]: device disconnected - close port");
+                        _ = Task.Run(async () =>
                         {
-                            Logger.Error($"[USBDRIVER]: device disconnected - close port");
-                            _ = Task.Run(async () =>
+                            try
                             {
-                                try
-                                {
-                                    await CloseAsync();
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.Error($"[USBDRIVER]: close disconnected {ex}");
-                                }
-                            }, ct);
-                            break;
-                        }
-                        continue;
-                    }
-                    if (ReferenceEquals(dataRq.Endpoint, UsbEndpointRead))
-                    {
-                        if (ReadHeaderLength < ((NetDirectByteBuffer?)dataRq.ClientData!).Position)
-                        {
-                            await dataRqWriter.WriteAsync(dataRq, ct);
-                            // if _dataRqChannel is full, deqeue from the beginning of the queue
-                            // we'll leave a reserve of UsbMinRequestCount(4) active requests in the OS queue.
-                            if (UsbRequestCount - UsbMinRequestCount < _dataRqChannel.Reader.Count)
-                            {
-                                dataRq = await _dataRqChannel.Reader.ReadAsync(ct);
-                                await sendRqWriter.WriteAsync(dataRq, ct);
+                                List<Exception> errors = [];
+                                await CloseAsync(errors);
+                                if (0 < errors.Count)
+                                    Logger.Error($"[USBDRIVER]: close errors: {errors}");
                             }
-                        }
-                        else
-                            await sendRqWriter.WriteAsync(dataRq, ct);
-                        continue;
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"[USBDRIVER]: unexpected error {ex}");
+                            }
+                        }, ct);
+                        break;
                     }
-                    if (ReferenceEquals(dataRq.Endpoint, UsbEndpointWrite))
+                    continue;
+                }
+                if (ReferenceEquals(dataRq.Endpoint, UsbEndpointRead))
+                {
+                    if (ReadHeaderLength < ((NetDirectByteBuffer?)dataRq.ClientData!).Position)
                     {
-                        await wr.WriteAsync(dataRq, ct);
+                        await dataRqWriter.WriteAsync(dataRq, ct);
+                        // if _dataRqChannel is full, deqeue from the beginning of the queue
+                        // we'll leave a reserve of UsbMinRequestCount(4) active requests in the OS queue.
+                        if (UsbRequestCount - UsbMinRequestCount < _dataRqChannel.Reader.Count)
+                        {
+                            dataRq = await _dataRqChannel.Reader.ReadAsync(ct);
+                            await sendRqWriter.WriteAsync(dataRq, ct);
+                        }
                     }
+                    else
+                        await sendRqWriter.WriteAsync(dataRq, ct);
+                    continue;
+                }
+                if (ReferenceEquals(dataRq.Endpoint, UsbEndpointWrite))
+                {
+                    await wr.WriteAsync(dataRq, ct);
                 }
             }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                Logger.Error($"[USBDRIVER]: crash {ex}");
-                return;
-            }
-            Logger.TraceCond($"[USBDRIVER]: exit UsbReceiveAsync");
         }
         /// <summary>
         /// receives requests
@@ -443,37 +478,28 @@ namespace UsbSerialForAndroid.Net.Drivers
             ArgumentNullException.ThrowIfNull(_sendRqChannel);
             var sendRqReader = _sendRqChannel.Reader;
             UsbRequest? sendRq;
-            try
+            while (!ct.IsCancellationRequested)
             {
-                while (!ct.IsCancellationRequested)
+                sendRq = await sendRqReader.ReadAsync(ct);
+                if (sendRq?.ClientData is NetDirectByteBuffer buf)
                 {
-                    sendRq = await sendRqReader.ReadAsync(ct);
-                    if (sendRq?.ClientData is NetDirectByteBuffer buf)
+                    if (ReferenceEquals(sendRq.Endpoint, UsbEndpointRead))
                     {
-                        if (ReferenceEquals(sendRq.Endpoint, UsbEndpointRead))
-                        {
-                            buf.Rewind();
-                            buf.ClientData = null;
-                        }
-                        if (!(OperatingSystem.IsAndroidVersionAtLeast(26) ?
-                            sendRq.Queue(buf.JavaBuffer) : sendRq.Queue(buf.JavaBuffer, buf.JavaBuffer.Capacity())))
-                            throw new Java.IO.IOException("Error queueing request.");
+                        buf.Rewind();
+                        buf.ClientData = null;
                     }
-                    else
-                        Logger.Error($"[USBDRIVER]: brocken emptyRq");
+                    if (!(OperatingSystem.IsAndroidVersionAtLeast(26) ?
+                        sendRq.Queue(buf.JavaBuffer) : sendRq.Queue(buf.JavaBuffer, buf.JavaBuffer.Capacity())))
+                        throw new Java.IO.IOException("Error queueing request.");
                 }
+                else
+                    throw new Exception("broken emptyRq - ClientData is null or not NetDirectByteBuffer");
             }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                Logger.Error($"[USBDRIVER]: crash {ex}");
-                return;
-            }
-            Logger.TraceCond($"[USBDRIVER]: exit PostReadRequestsAsync");
         }
         public virtual async Task<int> ReadAsync(byte[] dstBuf, int offset, int count, CancellationToken ct = default)
         {
             Logger.DebugCond($"[USBDRIVER]: Start read count={count}");
+            ThrowIfNotStartedOrFaulted();
             ArgumentNullException.ThrowIfNull(_dataRqChannel);
             ArgumentNullException.ThrowIfNull(_sendRqChannel);
             var sendRqWriter = _sendRqChannel.Writer;
@@ -537,11 +563,6 @@ namespace UsbSerialForAndroid.Net.Drivers
                 }
                 return readed;
             }
-            catch (Exception ex)
-            {
-                Logger.Error($"[USBDRIVER]: write Exception {ex}");
-                throw;
-            }
             finally
             {
                 if (null != rq)
@@ -552,6 +573,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         }
         public virtual async Task<int> WriteAsync(byte[] wbuf, int offset, int count, CancellationToken ct = default)
         {
+            ThrowIfNotStartedOrFaulted();
             ArgumentNullException.ThrowIfNull(_writeChannel);
             ArgumentNullException.ThrowIfNull(_sendRqChannel);
             UsbRequest? wr = null;
@@ -584,11 +606,6 @@ namespace UsbSerialForAndroid.Net.Drivers
                 // isCanceled == true - operation canceled
                 // isCanceled == false - the operation does not require cancellation, because has already been completed
                 Logger.TraceCond($"[USBDRIVER]: cancel {isCanceled}");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"[USBDRIVER]: write Exception {ex}");
                 throw;
             }
             finally

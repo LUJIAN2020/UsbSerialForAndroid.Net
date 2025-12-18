@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
@@ -130,10 +131,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetParameter(baudRate, dataBits, stopBits, parity);
             await InitBuffersAsync();
         }
-        public override Task CloseAsync()
+        public override Task CloseAsync(List<Exception>? errors = null)
         {
             UsbEndpointInterupt?.Dispose(); UsbEndpointInterupt = null;
-            return base.CloseAsync();
+            return base.CloseAsync(errors);
         }
         /// <summary>
         /// Set parameter
