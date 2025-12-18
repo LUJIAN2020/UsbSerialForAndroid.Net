@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using UsbSerialForAndroid.Net;
 using UsbSerialForAndroid.Net.Drivers;
-using UsbSerialForAndroid.Net.Logging;
 
 namespace MauiDemo.Models;
 
@@ -19,7 +18,6 @@ public partial class IOTestModel : ObservableObject
         CancellationToken ct)
     {
         using var usbDriver = UsbDriverFactory.CreateUsbDriver(deviceId);
-        usbDriver.Logger = new LoggerAndroid();
         var _stopBits = (UsbSerialForAndroid.Net.Enums.StopBits)stopBits;
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);
@@ -33,7 +31,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            usbDriver.Logger.Error($"{ex}");
+            Console.WriteLine($"[err] {ex}");
         }
     }
     public async Task ExecWriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
@@ -44,7 +42,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            usbDriver.Logger.Error($"{ex}");
+            Console.WriteLine($"[err] {ex}");
         }
     }
     public const int SampleBufLength = 256;
@@ -112,8 +110,8 @@ public partial class IOTestModel : ObservableObject
             }
             if (!testDataSample.SequenceEqual(buf))
             {
-                usbDriver.Logger.Error(BitConverter.ToString(buf));
-                usbDriver.Logger.Error($"Read {readTotal} not equal write sequence");
+                Console.WriteLine($"[err] {BitConverter.ToString(buf)}");
+                Console.WriteLine($"[err] Read {readTotal} not equal write sequence");
                 throw new Exception($"Read {readTotal} not equal write sequence");
             }
         }

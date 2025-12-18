@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using UsbSerialForAndroid.Net.Logging;
 
 namespace UsbSerialForAndroid.Net.Helper;
 
@@ -9,7 +8,6 @@ public class BaseDisposable : IAnyDisposable
 {
     private int _isDisposed = 0;
     public bool IsDisposed => 0 != _isDisposed;
-    public ILogger Logger = new LoggerNull();
 
     ~BaseDisposable()
     {
@@ -34,13 +32,13 @@ public class BaseDisposable : IAnyDisposable
         try
         {
             if (!disposing)
-                Logger.Warning($"MEMORY LEAK: {GetType().FullName}");
+                Console.WriteLine($"MEMORY LEAK: {GetType().FullName}");
             await DisposeAsyncCore().ConfigureAwait(false);
             Dispose(disposing);
         }
         catch (Exception ex)
         {
-            Logger.Error($"FAILED Dispose {ex}");
+            Console.WriteLine($"FAILED Dispose {ex}");
         }
     }
     protected virtual void Dispose(bool disposing) { }
