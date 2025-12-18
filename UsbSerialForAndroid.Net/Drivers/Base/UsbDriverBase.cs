@@ -458,7 +458,8 @@ namespace UsbSerialForAndroid.Net.Drivers
                         // we'll leave a reserve of UsbMinRequestCount(4) active requests in the OS queue.
                         if (UsbRequestCount - UsbMinRequestCount < _dataRqChannel.Reader.Count)
                         {
-                            dataRq = await _dataRqChannel.Reader.ReadAsync(ct);
+                            dataRq = Interlocked.Exchange(ref _current, null);// try return current first dequeued item
+                            dataRq ??= await _dataRqChannel.Reader.ReadAsync(ct);
                             await sendRqWriter.WriteAsync(dataRq, ct);
                         }
                     }
