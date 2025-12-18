@@ -624,6 +624,9 @@ namespace UsbSerialForAndroid.Net.Drivers
             ArgumentNullException.ThrowIfNull(_sendRqChannel);
             var sendQueue = _sendRqChannel.Writer;
             await StopProcessingTasks();
+            var curr = Interlocked.Exchange(ref _current, null);
+            if (curr != null)
+                await sendQueue.WriteAsync(curr, ct);
             await foreach (var rq in _dataRqChannel.Reader.ReadAllAsync(ct))
                 await sendQueue.WriteAsync(rq, ct);
             StartProcessingTasks();
