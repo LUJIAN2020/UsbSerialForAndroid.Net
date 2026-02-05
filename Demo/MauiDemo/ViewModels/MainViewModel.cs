@@ -93,6 +93,44 @@ namespace MauiDemo.ViewModels
                 ShowMessage(ex.Message);
             }
         });
+        [ObservableProperty] public partial string? WriteSpeed { get; set; }
+        [ObservableProperty] public partial string? ReadSpeed { get; set; }
+        [RelayCommand(IncludeCancelCommand = true)]
+        public async Task SendReceive(object[] items, CancellationToken ct)
+        {
+            try
+            {
+                if (items is null
+                || items.Length != 5
+                || items[0] is not UsbDeviceInfo usbDeviceInfo
+                || items[1] is not int baudRate
+                || items[2] is not byte dataBits
+                || items[3] is not byte stopBits
+                || items[4] is not Parity parity)
+                    return;
+                var test = new IOTestModel();
+                test.PropertyChanged += (obj, arg) =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        switch (arg.PropertyName)
+                        {
+                            default: break;
+                            case nameof(WriteSpeed): WriteSpeed = test.WriteSpeed; break;
+                            case nameof(ReadSpeed): ReadSpeed = test.ReadSpeed; break;
+                        }
+                    });
+                };
+                await Task.Run(() => test.StartTestAsync(usbDeviceInfo.DeviceId,
+                    baudRate, dataBits, stopBits, (byte)parity, ct), ct);
+            }
+            catch (Exception ex)
+            {
+                ShowMessage(ex.Message);
+            }
+            WriteSpeed = null;
+            ReadSpeed = null;
+        }
         public RelayCommand TestConnectCommand => new(() =>
         {
             try

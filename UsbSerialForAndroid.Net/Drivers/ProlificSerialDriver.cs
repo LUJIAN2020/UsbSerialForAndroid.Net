@@ -1,5 +1,7 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 
@@ -55,7 +57,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -127,6 +129,12 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetFlowControl(FlowControl);
 
             SetParameter(baudRate, dataBits, stopBits, parity);
+            await InitBuffersAsync();
+        }
+        public override Task CloseAsync(List<Exception>? errors = null)
+        {
+            UsbEndpointInterupt?.Dispose(); UsbEndpointInterupt = null;
+            return base.CloseAsync(errors);
         }
         /// <summary>
         /// Set parameter
@@ -139,9 +147,9 @@ namespace UsbSerialForAndroid.Net.Drivers
         {
             var para = new byte[7];
             para[0] = (byte)(baudRate & 0xFF);
-            para[1] = (byte)(baudRate >> 8 & 0xFF);
-            para[2] = (byte)(baudRate >> 16 & 0xFF);
-            para[3] = (byte)(baudRate >> 24 & 0xFF);
+            para[1] = (byte)((baudRate >> 8) & 0xFF);
+            para[2] = (byte)((baudRate >> 16) & 0xFF);
+            para[3] = (byte)((baudRate >> 24) & 0xFF);
             switch (stopBits)
             {
                 case StopBits.None:

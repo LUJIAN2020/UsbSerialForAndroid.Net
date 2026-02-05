@@ -14,8 +14,6 @@ namespace UsbSerialForAndroid.Net.Drivers
     {
         private bool baudRateWithPort = false;
         public const int RequestTypeHostToDevice = UsbConstants.UsbTypeVendor | (int)UsbAddressing.Out;
-        public const int ReadHeaderLength = 2; // contains MODEM_STATUS
-
 
         public const int ModemControlDtrEnable = 0x0101;
         public const int ModemControlDtrDisable = 0x0100;
@@ -33,7 +31,11 @@ namespace UsbSerialForAndroid.Net.Drivers
         public const int SetLatencyTimerRequest = 9; // SET_LATENCY_TIMER_REQUEST
         public const int GetLatencyTimerRequest = 10; // GET_LATENCY_TIMER_REQUEST
 
-        public FtdiSerialDriver(UsbDevice usbDevice) : base(usbDevice) { }
+        public FtdiSerialDriver(UsbDevice usbDevice)
+            : base(usbDevice)
+        {
+            ReadHeaderLength = 2;
+        }
         /// <summary>
         /// Open the USB device
         /// </summary>
@@ -42,7 +44,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -74,6 +76,8 @@ namespace UsbSerialForAndroid.Net.Drivers
 
             SetParameter(baudRate, dataBits, stopBits, parity);
             SetLatency(1);
+            FilterData = FilterBuf;
+            await InitBuffersAsync();
         }
         /// <summary>
         /// Reset the USB device
@@ -303,14 +307,6 @@ namespace UsbSerialForAndroid.Net.Drivers
             {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
-        }
-        /// <summary>
-        /// Asynchronous read the data
-        /// </summary>
-        /// <returns></returns>
-        public override Task<byte[]?> ReadAsync()
-        {
-            return Task.FromResult(Read());
         }
         static private int FilterBuf(Span<byte> src, Span<byte> dst)
         {

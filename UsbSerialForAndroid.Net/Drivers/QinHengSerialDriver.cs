@@ -1,5 +1,6 @@
 ﻿using Android.Hardware.Usb;
 using System;
+using System.Threading.Tasks;
 using UsbSerialForAndroid.Net.Enums;
 using UsbSerialForAndroid.Net.Exceptions;
 
@@ -21,6 +22,22 @@ namespace UsbSerialForAndroid.Net.Drivers
         public const int SclDtr = 0x20;
         public const int SclRts = 0x40;
 
+        // info from linux
+        // https://github.com/torvalds/linux/tree/master/drivers/usb/serial
+        // https://github.com/nospam2000/ch341-baudrate-calculation/tree/master
+        public byte ChipVersion = 0;
+        public const byte CH341_REQ_READ_VERSION = 0x5F;
+        public const byte CH341_REQ_WRITE_REG = 0x9A;
+        public const byte CH341_REQ_READ_REG = 0x95;
+        public const byte CH341_REQ_SERIAL_INIT = 0xA1;
+        public const byte CH341_REQ_MODEM_CTRL = 0xA4;
+
+        public const byte CH341_REG_DIVISOR = 0x13;
+        public const byte CH341_REG_PRESCALER = 0x12;
+
+        public const byte CH341_REG_LCR2 = 0x25;
+        public const byte CH341_REG_LCR = 0x18;
+
         public const int RequestTypeHostToDeviceIn = UsbConstants.UsbTypeVendor | (int)UsbAddressing.In;
         public const int RequestTypeHostToDeviceOut = UsbConstants.UsbTypeVendor | (int)UsbAddressing.Out;
         public QinHengSerialDriver(UsbDevice usbDevice) : base(usbDevice) { }
@@ -32,7 +49,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="stopBits"></param>
         /// <param name="parity"></param>
         /// <exception cref="Exception"></exception>
-        public override void Open(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
+        public override async ValueTask OpenAsync(int baudRate = DefaultBaudRate, byte dataBits = DefaultDataBits, StopBits stopBits = DefaultStopBits, Parity parity = DefaultParity)
         {
             UsbDeviceConnection = UsbManager.OpenDevice(UsbDevice);
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
@@ -64,9 +81,9 @@ namespace UsbSerialForAndroid.Net.Drivers
                     }
                 }
             }
-
             Initialize();
             SetParameter(baudRate, dataBits, stopBits, parity);
+            await InitBuffersAsync();
         }
         /// <summary>
         /// Initialize the device
@@ -74,53 +91,18 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <exception cref="ControlTransferException"></exception>
         private void Initialize()
         {
-            int request = 0x5f;
-            int value = 0;
-            int index = 0;
-            var data = new int[] { -1 /* 0x27, 0x30 */, 0x00 };
-            CheckState("init #1", request, value, data);
-
-            request = 0xa1;
-            value = 0;
-            index = 0;
-            int ret = ControlOut(request, value, index);
-            if (ret < 0)
-                throw new ControlTransferException("init failed! #2", ret, RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
-
+            byte[] data = [0xFF /* 0x27, 0x30 */, 0x00];
+            CheckState("init #1", CH341_REQ_READ_VERSION, 0, data);
+            ChipVersion = data[0];
+            ControlOut("init #2", CH341_REQ_SERIAL_INIT, 0, 0);
             SetBaudRate(DefaultBaudRate);
-
-            request = 0x95;
-            value = 0x2518;
-            data = new int[] { -1 /* 0x56, c3*/, 0x00 };
-            CheckState("init #4", request, value, data);
-
-            request = 0x9a;
-            value = 0x2518;
-            index = 0x0050;
-            ret = ControlOut(0x9a, 0x2518, 0x0050);
-            if (ret < 0)
-                throw new ControlTransferException("init failed! #5", ret, RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
-
-            request = 0x95;
-            value = 0x0706;
-            data = new int[] { -1 /*0xf?*/, -1 /*0xec,0xee*/};
-            CheckState("init #6", request, value, data);
-
-            request = 0xa1;
-            value = 0x501f;
-            index = 0xd90a;
-            ret = ControlOut(request, value, index);
-            if (ret < 0)
-                throw new ControlTransferException("init failed! #7", ret, RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
-
+            CheckState("init #4", CH341_REQ_READ_REG, 0x2518, [0xFF /* 0x56, c3*/, 0x00]);
+            ControlOut("init #5", CH341_REQ_WRITE_REG, 0x2518, 0x0050);
+            CheckState("init #6", CH341_REQ_READ_REG, 0x0706, [0xFF /*0xf?*/, 0xFF /*0xec,0xee*/]);
+            ControlOut("init #7", CH341_REQ_SERIAL_INIT, 0x501f, 0xd90a);
             SetBaudRate(DefaultBaudRate);
-
             SetControlLines();
-
-            request = 0x95;
-            value = 0x0706;
-            data = new int[] { -1 /* 0x9f, 0xff*/, -1/*0xec,0xee*/ };
-            CheckState("init #10", request, value, data);
+            CheckState("init #10", CH341_REQ_READ_REG, 0x0706, [0xFF /* 0x9f, 0xff*/, 0xFF/*0xec,0xee*/]);
         }
         /// <summary>
         /// Check the state of the device
@@ -131,23 +113,20 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="expected"></param>
         /// <exception cref="ControlTransferException"></exception>
         /// <exception cref="Exception"></exception>
-        private void CheckState(string msg, int request, int value, int[] expected)
+        private void CheckState(string msg, int request, int value, byte[] expected)
         {
             byte[] buffer = new byte[expected.Length];
             int ret = ControlIn(request, value, 0, buffer);
             if (ret < 0)
                 throw new ControlTransferException($"Failed send cmd [{msg}]", ret, RequestTypeHostToDeviceIn, request, value, 0, buffer, buffer.Length, ControlTimeout);
-
             if (ret != expected.Length)
                 throw new ControlTransferException($"Expected {expected.Length} bytes, but get {ret} [{msg}]", ret, RequestTypeHostToDeviceIn, request, value, 0, buffer, buffer.Length, ControlTimeout);
 
             for (int i = 0; i < expected.Length; i++)
             {
-                if (expected[i] == -1) continue;
-
-                int current = buffer[i] & 0xff;
-                if (expected[i] != current)
-                    throw new Exception($"Expected 0x{expected[i]:X} bytes, but get 0x{current:X} [ {msg} ]");
+                if (expected[i] != 0xFF && expected[i] != buffer[i])
+                    throw new Exception($"Expected 0x{expected[i]:X} bytes, but get 0x{buffer[i]:X} [ {msg} ]");
+                expected[i] = buffer[i];
             }
         }
         /// <summary>
@@ -170,10 +149,12 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="value"></param>
         /// <param name="index"></param>
         /// <returns></returns>
-        private int ControlOut(int request, int value, int index)
+        private void ControlOut(string msg, int request, int value, int index)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
-            return UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
+            int ret = UsbDeviceConnection.ControlTransfer((UsbAddressing)RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
+            if (0 > ret)
+                throw new ControlTransferException(msg, ret, RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
         }
         /// <summary>
         /// Set the control lines
@@ -181,12 +162,8 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <exception cref="ControlTransferException"></exception>
         private void SetControlLines()
         {
-            const int request = 0xA4;
             int value = ~((DtrEnable ? SclDtr : 0) | (RtsEnable ? SclRts : 0));
-            const int index = 0;
-            int ret = ControlOut(request, value, 0);
-            if (ret < 0)
-                throw new ControlTransferException("Failed to set control lines", ret, RequestTypeHostToDeviceOut, request, value, index, null, 0, ControlTimeout);
+            ControlOut("Failed to set control lines", CH341_REQ_MODEM_CTRL, value, 0);
         }
         /// <summary>
         /// Set the baud rate
@@ -200,24 +177,17 @@ namespace UsbSerialForAndroid.Net.Drivers
             {
                 if (baud[i * 3] == baudRate)
                 {
-                    const int request = 0x9a;
-
-                    const int value1 = 0x1312;
-                    int index1 = baud[i * 3 + 1];
-                    int ret = ControlOut(request, value1, index1);
-                    if (ret < 0)
-                        throw new ControlTransferException("Error setting baud rate. #1", ret, RequestTypeHostToDeviceOut, request, value1, index1, null, 0, ControlTimeout);
-
+                    const int value1 = (CH341_REG_DIVISOR << 8) | CH341_REG_PRESCALER;
+                    int index1 = baud[(i * 3) + 1];
+                    if (ChipVersion > 0x27)
+                        index1 |= 0x80; //  BIT(7)
+                    ControlOut("Error setting baud rate. #1", CH341_REQ_WRITE_REG, value1, index1);
                     const int value2 = 0x0f2c;
-                    int index2 = baud[i * 3 + 2];
-                    ret = ControlOut(request, value2, index2);
-                    if (ret < 0)
-                        throw new ControlTransferException("Error setting baud rate. #2", ret, RequestTypeHostToDeviceOut, request, value2, index2, null, 0, ControlTimeout);
-
+                    int index2 = baud[(i * 3) + 2];
+                    ControlOut("Error setting baud rate. #2", CH341_REQ_WRITE_REG, value2, index2);
                     return;
                 }
             }
-
             throw new Exception($"Baud rate {baudRate} currently not supported");
         }
         /// <summary>
@@ -266,11 +236,8 @@ namespace UsbSerialForAndroid.Net.Drivers
                 _ => throw new Exception($"Invalid stop bits: {stopBits}")
             };
 
-            const int request = 0x9A;
-            const int value = 0x2518;
-            int ret = ControlOut(request, value, lcr);
-            if (ret < 0)
-                throw new ControlTransferException("Error setting control byte", ret, RequestTypeHostToDeviceOut, request, value, lcr, null, 0, ControlTimeout);
+            const int value = (CH341_REG_LCR2 << 8) | CH341_REG_LCR;
+            ControlOut("Error setting control byte", CH341_REQ_WRITE_REG, value, lcr);
         }
         /// <summary>
         /// Set DTR enabled

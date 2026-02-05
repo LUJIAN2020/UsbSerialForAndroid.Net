@@ -40,6 +40,10 @@ public class UsbDriverDictionary
         Register((int)VendorIds.Prolific, (usbDevice) => new ProlificSerialDriver(usbDevice));
         Register((int)VendorIds.QinHeng, (usbDevice) => new QinHengSerialDriver(usbDevice));
         Register((int)VendorIds.SiliconLabs, (usbDevice) => new SiliconLabsSerialDriver(usbDevice));
+        Register((int)VendorIds.Atmel, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
+        Register((int)VendorIds.GigaDevice, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
+        Register((int)VendorIds.Arduino, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
+        Register((int)VendorIds.Nrf, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
     }
     void Register(int VendorId, CreateUsbDriverFn? fn)
     {
