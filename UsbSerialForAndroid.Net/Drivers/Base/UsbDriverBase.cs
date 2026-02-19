@@ -250,8 +250,9 @@ namespace UsbSerialForAndroid.Net.Drivers
                 return false;
             }
         }
-        public const int UsbBufLength = 256;
-        public const int UsbRequestCount = 64;
+        protected int UsbWriteBufLength = 256;
+        protected int UsbReadBufLength = 256;
+        protected int UsbRequestCount = 64;
         public const int UsbMinRequestCount = 4;
 
         public int ReadHeaderLength = 0;
@@ -308,7 +309,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 var rq = new UsbRequest();
                 rq.Initialize(UsbDeviceConnection, UsbEndpointRead);
                 _readRequests.Add(rq);
-                rq.ClientData = new NetDirectByteBuffer(UsbBufLength);
+                rq.ClientData = new NetDirectByteBuffer(UsbReadBufLength);
                 await _sendRqChannel.Writer.WriteAsync(rq);
             }
             StartProcessingTasks();
@@ -592,17 +593,18 @@ namespace UsbSerialForAndroid.Net.Drivers
                 while (0 < rest)
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (!receiveQueue.TryRead(out wr))
+                    if (null == wr && !receiveQueue.TryRead(out wr))
                         wr = await receiveQueue.ReadAsync(ct);// get a free write-request
-                    using var buf = new NetDirectByteBuffer(wbuf, offset, int.Min(rest, UsbBufLength));
+                    using var buf = new NetDirectByteBuffer(wbuf, offset, int.Min(rest, UsbWriteBufLength));
                     wr.ClientData = buf;
                     await sendQueue.WriteAsync(wr, ct);//send request
                     wr = null; // here we no longer own the request 
                     wr = await receiveQueue.ReadAsync(ct);//wait response
                     offset += buf.Position;
                     rest -= buf.Position;
-                    //TraceInfo($"[USBDRIVER]: sent {buf.Position}");
+                    //TraceInfo($"sent {buf.Position}");
                 }
+                TraceInfo($"sent total {count - rest}");
                 return count - rest;
             }
             catch (OperationCanceledException)
