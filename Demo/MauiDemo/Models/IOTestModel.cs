@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Android.Util;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
 using UsbSerialForAndroid.Net;
 using UsbSerialForAndroid.Net.Drivers;
@@ -21,6 +22,7 @@ public partial class IOTestModel : ObservableObject
         var _stopBits = (UsbSerialForAndroid.Net.Enums.StopBits)stopBits;
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);
+        await Task.Delay(100, ct);
         await Task.WhenAny(ExecReadAsync(usbDriver, ct), ExecWriteAsync(usbDriver, ct));
     }
     public async Task ExecReadAsync(UsbDriverBase usbDriver, CancellationToken ct)
@@ -31,7 +33,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[err] {ex}");
+            PrintErr(ex);
         }
     }
     public async Task ExecWriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
@@ -42,7 +44,7 @@ public partial class IOTestModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[err] {ex}");
+            PrintErr(ex);
         }
     }
     public const int SampleBufLength = 256;
@@ -110,11 +112,22 @@ public partial class IOTestModel : ObservableObject
             }
             if (!testDataSample.SequenceEqual(buf))
             {
-                Console.WriteLine($"[err] {BitConverter.ToString(buf)}");
-                Console.WriteLine($"[err] Read {readTotal} not equal write sequence");
+                PrintInf(BitConverter.ToString(buf));
+                PrintErr($"Read {readTotal} not equal write sequence");
                 throw new Exception($"Read {readTotal} not equal write sequence");
             }
         }
     }
 
+    static void PrintErr(Exception ex) => PrintErr(ex.ToString());
+    static void PrintErr(string str)
+    {
+        Console.WriteLine($"[err] {str}");
+        Log.WriteLine(LogPriority.Error, "IOTest", str);
+    }
+    static void PrintInf(string str)
+    {
+        Console.WriteLine($"[inf] {str}");
+        Log.WriteLine(LogPriority.Info, "IOTest", str);
+    }
 }
