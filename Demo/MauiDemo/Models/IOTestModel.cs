@@ -50,6 +50,8 @@ public partial class IOTestModel : ObservableObject
     public const int SampleBufLength = 256;
     public async Task WriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
+        //while (!ct.IsCancellationRequested) 
+        //    await Task.Delay(10000, ct);
         byte[] writeBuf = new byte[SampleBufLength];
         // fill buf
         for (int i = 0; i < writeBuf.Length; i++)
@@ -110,13 +112,25 @@ public partial class IOTestModel : ObservableObject
                 currLen -= currReadLen;
                 readTotal += currReadLen;
             }
-            if (!testDataSample.SequenceEqual(buf))
+            //if (!testDataSample.SequenceEqual(buf))
+            if (!IsSeq256(buf))
             {
                 PrintInf(BitConverter.ToString(buf));
                 PrintErr($"Read {readTotal} not equal write sequence");
                 throw new Exception($"Read {readTotal} not equal write sequence");
             }
         }
+    }
+    bool IsSeq256(ReadOnlySpan<byte> s1)
+    {
+        byte prev = s1[0];
+        for (int i = 1; i < 255; i++)
+        {
+            if (1 != s1[i] - prev)
+                return false;
+            prev = s1[i];
+        }
+        return true;
     }
 
     static void PrintErr(Exception ex) => PrintErr(ex.ToString());

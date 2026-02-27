@@ -76,8 +76,8 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// </summary>
         public override Task CloseAsync(List<Exception>? errors = null)
         {
-            PurgeHwBuffers(true, true);
             SetConfigSingle(SilabserIcfEnableRquestCode, UartDisable);
+            PurgeHwBuffers(true, true);
             return base.CloseAsync(errors);
         }
         /// <summary>

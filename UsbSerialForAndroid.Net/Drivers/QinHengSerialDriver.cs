@@ -83,12 +83,6 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             Initialize();
             SetParameter(baudRate, dataBits, stopBits, parity);
-            //ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
-            //ArgumentNullException.ThrowIfNull(UsbEndpointRead);
-            //UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
-            //UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
-            //UsbRequestCount = 128;
-            //UsbWriteRequestCount = 1;
             await InitBuffersAsync();
         }
         /// <summary>
