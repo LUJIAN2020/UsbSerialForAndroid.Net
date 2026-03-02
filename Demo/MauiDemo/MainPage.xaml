@@ -154,6 +154,10 @@
             <StackLayout>
                 <Label Text="High load speed test" FontSize="20" 
                        HorizontalTextAlignment="Center" TextColor="MediumPurple"/>
+                <Grid ColumnDefinitions="50,100*">
+                    <CheckBox Grid.Column="0" IsChecked="{Binding IsEnableWrite}" VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="Enable write" VerticalOptions="Center"/>
+                </Grid>
 
                 <Label Text="Write speed"/>
                 <Editor Text="{Binding WriteSpeed}" />

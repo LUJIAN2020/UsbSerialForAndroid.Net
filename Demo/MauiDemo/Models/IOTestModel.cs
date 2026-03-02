@@ -9,6 +9,8 @@ namespace MauiDemo.Models;
 public partial class IOTestModel : ObservableObject
 {
     //private UsbDriverBase? _usbDriver;
+
+    public bool EnableWrite;
     [ObservableProperty] public partial string? WriteSpeed { get; set; }
     [ObservableProperty] public partial string? ReadSpeed { get; set; }
     public IOTestModel() { }
@@ -23,7 +25,14 @@ public partial class IOTestModel : ObservableObject
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);
         await Task.Delay(100, ct);
-        await Task.WhenAny(ExecReadAsync(usbDriver, ct), ExecWriteAsync(usbDriver, ct));
+        if (EnableWrite)
+        {
+            await Task.WhenAny(ExecReadAsync(usbDriver, ct), ExecWriteAsync(usbDriver, ct));
+        }
+        else
+        {
+            await ExecReadAsync(usbDriver, ct);
+        }
     }
     public async Task ExecReadAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
@@ -50,8 +59,6 @@ public partial class IOTestModel : ObservableObject
     public const int SampleBufLength = 256;
     public async Task WriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
-        //while (!ct.IsCancellationRequested) 
-        //    await Task.Delay(10000, ct);
         byte[] writeBuf = new byte[SampleBufLength];
         // fill buf
         for (int i = 0; i < writeBuf.Length; i++)
