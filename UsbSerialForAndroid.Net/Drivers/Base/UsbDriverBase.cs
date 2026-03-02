@@ -254,7 +254,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         protected int UsbWriteBufLength = 256;
         protected int UsbReadBufLength = 256;
         protected int UsbRequestCount = 128;
-        protected int UsbWriteRequestCount = 32;
+        protected int UsbWriteRequestCount = 8;
         public const int UsbMinRequestCount = 4;
 
         public int ReadHeaderLength = 0;
@@ -322,8 +322,8 @@ namespace UsbSerialForAndroid.Net.Drivers
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
             ArgumentNullException.ThrowIfNull(UsbEndpointRead);
-            UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
-            UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
+            //UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
+            //UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
 
             // initializing a queue of free write requests
             _writeChannel = Channel.CreateUnbounded<UsbRequest>(new UnboundedChannelOptions()
@@ -554,13 +554,13 @@ namespace UsbSerialForAndroid.Net.Drivers
                         buf.ClientData = null;
                         //Interlocked.Increment(ref _readRqCount);
                         _queueRequest(sendRq, buf);
-                        TraceInfo($"send read request");
+                        //TraceInfo($"send read request");
                     }
                     else
                     {
                         //Interlocked.Increment(ref _writeRqCount);
                         _queueRequest(sendRq, buf);
-                        TraceInfo($"send write request {buf.ClientData} len={buf.JavaBuffer.Limit()}");
+                        //TraceInfo($"send write request {buf.ClientData} len={buf.JavaBuffer.Limit()}");
                     }
                 }
                 else

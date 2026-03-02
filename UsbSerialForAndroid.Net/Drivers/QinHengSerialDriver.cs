@@ -83,6 +83,18 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             Initialize();
             SetParameter(baudRate, dataBits, stopBits, parity);
+            // For some reason, packet aggregation does not work in ch340,
+            // i.e. if the buffer is more than 32 bytes, then the USB stack accumulates data until the buffer is full,
+            // As far as I know, the polling for USB fullspeed is 1ms.
+            // So 1ms * 32bytes = 32000 bytes/sec = 32000 * (10 - 2) = 256000 baud!
+            // 256000 baud - this is the maximum speed, without data loss (buffer overwriting) :-(
+            // 
+            ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
+            ArgumentNullException.ThrowIfNull(UsbEndpointRead);
+            UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
+            UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
+            //UsbRequestCount = 128;
+            //UsbWriteRequestCount = 1;
             await InitBuffersAsync();
         }
         /// <summary>
