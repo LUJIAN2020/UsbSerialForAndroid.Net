@@ -42,9 +42,10 @@
 
                 <StackLayout Grid.Column="0">
                     <Label Text="{x:Static rf:AppResources.BaudRate}" />
-                    <Picker x:Name="baudRatePicker">
+                    <Picker x:Name="baudRatePicker" SelectedIndex="10">
                         <Picker.ItemsSource>
                             <x:Array Type="{x:Type x:Int32}">
+                                <x:Int32>1200</x:Int32>
                                 <x:Int32>9600</x:Int32>
                                 <x:Int32>14400</x:Int32>
                                 <x:Int32>19200</x:Int32>

@@ -316,14 +316,25 @@ namespace UsbSerialForAndroid.Net.Drivers
                 item.Dispose();
             }
         }
-        protected async Task InitBuffersAsync()
+        protected async Task InitBuffersAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity)
         {
             TraceInfo("InitAsync");
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
             ArgumentNullException.ThrowIfNull(UsbEndpointRead);
-            //UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
-            //UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
+            if (9600 > baudRate)
+            {
+                UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
+                UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
+            }
+            // Let's set the number of read buffers to last for about 0.5 seconds
+            // 921600 / 10 / 256 * 0.5 = 180
+            // 460800 / 10 / 256 * 0.5 = 90
+            // 115200 / 10 / 256 * 0.5 = 22.5
+            // 9600 / 10 / 64 * 0.5 = 7.5
+            // 1200 / 10 / 64 * 0.5 = 0.9375
+            UsbRequestCount = int.Min(512, int.Max(32, (int)(baudRate / 10d / UsbReadBufLength * 0.5)));
+            //UsbWriteRequestCount = int.Min(8, int.Max(1, (int)(baudRate / 9600)));
 
             // initializing a queue of free write requests
             _writeChannel = Channel.CreateUnbounded<UsbRequest>(new UnboundedChannelOptions()

@@ -88,14 +88,11 @@ namespace UsbSerialForAndroid.Net.Drivers
             // As far as I know, the polling for USB fullspeed is 1ms.
             // So 1ms * 32bytes = 32000 bytes/sec = 32000 * (10 - 2) = 256000 baud!
             // 256000 baud - this is the maximum speed, without data loss (buffer overwriting) :-(
-            // 
             ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
             ArgumentNullException.ThrowIfNull(UsbEndpointRead);
             UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
             UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
-            //UsbRequestCount = 128;
-            //UsbWriteRequestCount = 1;
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         /// <summary>
         /// Initialize the device
