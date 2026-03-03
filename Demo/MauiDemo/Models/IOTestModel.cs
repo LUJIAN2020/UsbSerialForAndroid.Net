@@ -29,6 +29,7 @@ public partial class IOTestModel : ObservableObject
         var _parity = (UsbSerialForAndroid.Net.Enums.Parity)parity;
         await usbDriver.OpenAsync(baudRate, dataBits, _stopBits, _parity);
         await Task.Delay(100, ct);
+        await usbDriver.FlushAsync(ct);
         if (EnableWrite)
         {
             await Task.WhenAny(ExecReadAsync(usbDriver, ct), ExecWriteAsync(usbDriver, ct));
