@@ -283,7 +283,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="latency"></param>
         /// <exception cref="Exception"></exception>
         /// <exception cref="ControlTransferException"></exception>
-        public void SetLatency(byte latency)
+        public override void SetLatency(byte latency)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             int config = latency;

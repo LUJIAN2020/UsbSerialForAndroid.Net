@@ -124,6 +124,12 @@ namespace UsbSerialForAndroid.Net.Drivers
             OpenAsync(baudRate, dataBits, stopBits, parity).AsTask().SynchronousWait();
         public abstract ValueTask OpenAsync(int baudRate, byte dataBits, StopBits stopBits, Parity parity);
         /// <summary>
+        /// Set the Latency - miliseconds
+        /// mainly for the ftdi chip, allows you to reduce latency (chip polling interval per second)
+        /// </summary>
+        /// <param name="latency"></param>
+        public virtual void SetLatency(byte latency) {  }
+        /// <summary>
         /// Set DTR enabled
         /// </summary>
         /// <param name="value">true=enabled</param>
