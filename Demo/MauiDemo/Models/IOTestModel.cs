@@ -8,14 +8,18 @@ namespace MauiDemo.Models;
 
 public partial class IOTestModel : ObservableObject
 {
-    //private UsbDriverBase? _usbDriver;
-
     public bool EnableWrite;
     [ObservableProperty] public partial string? WriteSpeed { get; set; }
     [ObservableProperty] public partial string? ReadSpeed { get; set; }
-    public IOTestModel() { }
-
+    public IOTestModel()
+    {
+        byte value = 0;
+        for (int i = 0; i < SampleBuf.Length; i++)
+            SampleBuf[i] = value++;
+    }
     public static TimeSpan UpdatePreiod = TimeSpan.FromMilliseconds(1000);
+    public const int SampleBufLength = 256;
+    public readonly byte[] SampleBuf = new byte[SampleBufLength];
 
     public async Task StartTestAsync(int deviceId, int baudRate, byte dataBits, byte stopBits, byte parity,
         CancellationToken ct)
@@ -56,14 +60,8 @@ public partial class IOTestModel : ObservableObject
             PrintErr(ex);
         }
     }
-    public const int SampleBufLength = 256;
     public async Task WriteAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
-        byte[] writeBuf = new byte[SampleBufLength];
-        // fill buf
-        for (int i = 0; i < writeBuf.Length; i++)
-            writeBuf[i] = (byte)i;
-
         double speed = 0;
         long sentTotal = 0;
         long sentPrev = 0;
@@ -81,7 +79,7 @@ public partial class IOTestModel : ObservableObject
                 tickPrev = now;
                 sentPrev = sentTotal;
             }
-            if (SampleBufLength != await usbDriver.WriteAsync(writeBuf, 0, writeBuf.Length, ct))
+            if (SampleBufLength != await usbDriver.WriteAsync(SampleBuf, 0, SampleBuf.Length, ct))
                 throw new Exception("Something write wrong");
             sentTotal += SampleBufLength;
         }
@@ -89,10 +87,6 @@ public partial class IOTestModel : ObservableObject
     private async Task ReadAsync(UsbDriverBase usbDriver, CancellationToken ct)
     {
         byte[] buf = new byte[SampleBufLength];
-        byte[] testDataSample = new byte[SampleBufLength];
-        // fill buf
-        for (int i = 0; i < testDataSample.Length; i++)
-            testDataSample[i] = (byte)i;
         double speed = 0;
         long readTotal = 0;
         long readPrev = 0;
@@ -120,22 +114,19 @@ public partial class IOTestModel : ObservableObject
                 readTotal += currReadLen;
             }
             //if (!testDataSample.SequenceEqual(buf))
-            if (!IsSeq256(buf))
-            {
-                PrintInf(BitConverter.ToString(buf));
-                PrintErr($"Read {readTotal} not equal write sequence");
-                throw new Exception($"Read {readTotal} not equal write sequence");
-            }
+            if (!IsSeq(buf))
+                throw new Exception($"Read {readTotal} not equal write sequence " +
+                    $"\n{BitConverter.ToString(buf)}");
         }
     }
-    bool IsSeq256(ReadOnlySpan<byte> s1)
+    public static bool IsSeq(ReadOnlySpan<byte> s1)
     {
-        byte prev = s1[0];
-        for (int i = 1; i < 255; i++)
+        byte val = s1[0];
+        for (int i = 1; i < s1.Length; i++)
         {
-            if (1 != s1[i] - prev)
+            val++;
+            if (val != s1[i])
                 return false;
-            prev = s1[i];
         }
         return true;
     }
@@ -143,7 +134,7 @@ public partial class IOTestModel : ObservableObject
     static void PrintErr(Exception ex) => PrintErr(ex.ToString());
     static void PrintErr(string str)
     {
-        Console.WriteLine($"[err] {str}");
+        //Console.WriteLine($"[err] {str}");
         Log.WriteLine(LogPriority.Error, "IOTest", str);
     }
     static void PrintInf(string str)
