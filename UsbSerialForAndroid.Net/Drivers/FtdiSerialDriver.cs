@@ -78,10 +78,10 @@ namespace UsbSerialForAndroid.Net.Drivers
             // 1000 / 2000000 / 10 *256 = 1.28
             // 1000 / 921600 / 10 *256 = 2.7msec
             // 1000 / 460800 / 10 *256 = 5.5msec
-            uint latency = (uint)(1000d / (baudRate / 10d) * 256d);
+            uint latency = (uint)(1000d / (baudRate / 10d) * 256d + 0.5d);
             latency = uint.Max(1, latency);
             latency = uint.Min(32, latency);
-            UsbRequestCount = (1 == latency)? 256 : 128;
+            UsbRequestCount = (1 == latency) ? 256 : 128;
             UsbWriteRequestCount = 2;
 
             SetParameter(baudRate, dataBits, stopBits, parity);
