@@ -586,7 +586,9 @@ namespace UsbSerialForAndroid.Net.Drivers
                 {
                     var data = buf.MemBuffer.Span.Slice(0, buf.Position);
                     TraceInfo($"read get buf, len={buf.Position}");
-                    if (null != FilterData && buf.Position > (count - readed))
+                    if (null != FilterData
+                        && (buf.ClientData is null || buf.ClientData is false)
+                        && buf.Position > (count - readed))
                     {
                         buf.Position = FilterData(data, data);
                         buf.ClientData = true;// filtered
