@@ -15,7 +15,7 @@ public class ProductDriverDictionary
 
     public UsbDriverBase Create(UsbDevice usbDevice)
     {
-        if (null != ById && ById.TryGetValue(usbDevice.DeviceId, out var driverFn))
+        if (null != ById && ById.TryGetValue(usbDevice.ProductId, out var driverFn))
             return driverFn(usbDevice);
         if (null != Default)
             return Default.Invoke(usbDevice);
@@ -39,6 +39,7 @@ public class UsbDriverDictionary
         Register((int)VendorIds.FTDI, (usbDevice) => new FtdiSerialDriver(usbDevice));
         Register((int)VendorIds.Prolific, (usbDevice) => new ProlificSerialDriver(usbDevice));
         Register((int)VendorIds.QinHeng, (usbDevice) => new QinHengSerialDriver(usbDevice));
+        Register((int)VendorIds.QinHeng, 0x55d4, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
         Register((int)VendorIds.SiliconLabs, (usbDevice) => new SiliconLabsSerialDriver(usbDevice));
         Register((int)VendorIds.Atmel, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
         Register((int)VendorIds.GigaDevice, (usbDevice) => new CdcAcmSerialDriver(usbDevice));
