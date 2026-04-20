@@ -54,6 +54,25 @@ var buffer = usbDriver.Read();
 usbDriver.Close();
 ```
 
+Async version (see sample in IOTestModel.cs)
+```
+//Open the USB device and set the communication parameters
+using var usbDriver = UsbDriverFactory.CreateUsbDriver(deviceId);
+await usbDriver.OpenAsync(230400, 8, StopBits.One, Parity.None);
+//await usbDriver.FlushAsync(ct);
+
+//Send data
+var data = new byte[] { 0x01, 0x01, 0x00, 0x00, 0x00, 0x08, 0x3D, 0xCC };
+var sentLen = await usbDriver.WriteAsync(data, 0, data.Length, ct))
+
+//Receive data
+var buf = new byte[256];
+int readedLen = await usbDriver.ReadAsync(buf, 0, buf.Length, ct);
+
+//Close the USB device - will be called automatically when Dispose usbDriver
+//usbDriver.Close();
+```
+
 ### 🚀Supported Driver
 
 **Technology Devices International, Ltd**
@@ -84,6 +103,7 @@ QinHeng = 0x1A86
 
 - HL340 = 0x7523
 - CH341A = 0x5523
+- CH9102= 0x55d4 (CDC)
 
 **Silicon Labs** 
 
