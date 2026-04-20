@@ -1,5 +1,5 @@
 ﻿#if DEBUG
-#define TRACE_INFO
+//#define TRACE_INFO
 #endif
 using Android.App;
 using Android.Content;
