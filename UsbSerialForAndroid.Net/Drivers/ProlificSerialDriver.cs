@@ -129,7 +129,7 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetFlowControl(FlowControl);
 
             SetParameter(baudRate, dataBits, stopBits, parity);
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         public override Task CloseAsync(List<Exception>? errors = null)
         {

@@ -74,10 +74,17 @@ namespace UsbSerialForAndroid.Net.Drivers
                 || deviceType == 9// ...H devices                                                        
                 || UsbDevice.InterfaceCount > 1;// FT2232C
 
+            // adjust latency for maximum fill aggregated buffer (256 bytes)
+            // 1000 / 2000000 / 10 *256 = 1.28
+            // 1000 / 921600 / 10 *256 = 2.7msec
+            // 1000 / 460800 / 10 *256 = 5.5msec
+            uint latency = (uint)(1000d / (baudRate / 10d) * 256d + 0.5d);
+            latency = uint.Min(32, uint.Max(1, latency));
+
             SetParameter(baudRate, dataBits, stopBits, parity);
-            SetLatency(1);
+            SetLatency((byte)latency);
             FilterData = FilterBuf;
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         /// <summary>
         /// Reset the USB device
@@ -276,7 +283,7 @@ namespace UsbSerialForAndroid.Net.Drivers
         /// <param name="latency"></param>
         /// <exception cref="Exception"></exception>
         /// <exception cref="ControlTransferException"></exception>
-        public void SetLatency(byte latency)
+        public override void SetLatency(byte latency)
         {
             ArgumentNullException.ThrowIfNull(UsbDeviceConnection);
             int config = latency;

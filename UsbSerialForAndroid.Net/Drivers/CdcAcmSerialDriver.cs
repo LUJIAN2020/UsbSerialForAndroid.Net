@@ -32,7 +32,7 @@ namespace UsbSerialForAndroid.Net.Drivers
                 OpenInterface();
             }
             SetParameters(baudRate, dataBits, stopBits, parity);
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         private void OpenSingleInterface()
         {

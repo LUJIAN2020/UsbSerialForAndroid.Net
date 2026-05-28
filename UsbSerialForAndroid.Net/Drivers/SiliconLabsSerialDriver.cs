@@ -69,15 +69,15 @@ namespace UsbSerialForAndroid.Net.Drivers
             SetConfigSingle(SilabserSetMhsRequestCode, McrAll | ControlDtrDisable | ControlRtsDisable);
             //SetConfigSingle(SilabserSetBauddivRequestCode, BaudRateGenFreq / DefaultBaudRate);
             SetParameter(baudRate, dataBits, stopBits, parity);
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         /// <summary>
         /// close port
         /// </summary>
         public override Task CloseAsync(List<Exception>? errors = null)
         {
-            PurgeHwBuffers(true, true);
             SetConfigSingle(SilabserIcfEnableRquestCode, UartDisable);
+            PurgeHwBuffers(true, true);
             return base.CloseAsync(errors);
         }
         /// <summary>

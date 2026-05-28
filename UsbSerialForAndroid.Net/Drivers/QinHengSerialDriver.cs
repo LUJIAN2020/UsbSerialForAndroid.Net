@@ -83,12 +83,16 @@ namespace UsbSerialForAndroid.Net.Drivers
             }
             Initialize();
             SetParameter(baudRate, dataBits, stopBits, parity);
+            // For some reason, packet aggregation does not work in ch340,
+            // i.e. if the buffer is more than 32 bytes, then the USB stack accumulates data until the buffer is full,
+            // As far as I know, the polling for USB fullspeed is 1ms.
+            // So 1ms * 32bytes = 32000 bytes/sec = 32000 * (10 - 2) = 256000 baud!
+            // 256000 baud - this is the maximum speed, without data loss (buffer overwriting) :-(
             ArgumentNullException.ThrowIfNull(UsbEndpointWrite);
             ArgumentNullException.ThrowIfNull(UsbEndpointRead);
             UsbWriteBufLength = UsbEndpointWrite.MaxPacketSize;
             UsbReadBufLength = UsbEndpointRead.MaxPacketSize;
-            UsbRequestCount = 128;
-            await InitBuffersAsync();
+            await InitBuffersAsync(baudRate, dataBits, stopBits, parity);
         }
         /// <summary>
         /// Initialize the device
@@ -101,8 +105,8 @@ namespace UsbSerialForAndroid.Net.Drivers
             ChipVersion = data[0];
             ControlOut("init #2", CH341_REQ_SERIAL_INIT, 0, 0);
             SetBaudRate(DefaultBaudRate);
-            CheckState("init #4", CH341_REQ_READ_REG, 0x2518, [0xFF /* 0x56, c3*/, 0x00]);
-            ControlOut("init #5", CH341_REQ_WRITE_REG, 0x2518, 0x0050);
+            CheckState("init #4", CH341_REQ_READ_REG, CH341_REG_LCR | (CH341_REG_LCR2 << 8), [0xFF /* 0x56, c3*/, 0x00]);
+            ControlOut("init #5", CH341_REQ_WRITE_REG, CH341_REG_LCR | (CH341_REG_LCR2 << 8), 0x0050);
             CheckState("init #6", CH341_REQ_READ_REG, 0x0706, [0xFF /*0xf?*/, 0xFF /*0xec,0xee*/]);
             ControlOut("init #7", CH341_REQ_SERIAL_INIT, 0x501f, 0xd90a);
             SetBaudRate(DefaultBaudRate);

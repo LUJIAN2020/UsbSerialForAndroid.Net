@@ -8,7 +8,7 @@ namespace MauiDemo
         {
             InitializeComponent();
             BindingContext = vm;
-            baudRatePicker.SelectedIndex = 9;
+            baudRatePicker.SelectedIndex = 10;
             dataBitsPicker.SelectedIndex = 3;
             stopBitsPicker.SelectedIndex = 0;
             parityPicker.SelectedIndex = 0;

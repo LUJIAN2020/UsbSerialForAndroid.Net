@@ -93,6 +93,7 @@ namespace MauiDemo.ViewModels
                 ShowMessage(ex.Message);
             }
         });
+        [ObservableProperty] public partial bool? IsEnableWrite { get; set; } = true;
         [ObservableProperty] public partial string? WriteSpeed { get; set; }
         [ObservableProperty] public partial string? ReadSpeed { get; set; }
         [RelayCommand(IncludeCancelCommand = true)]
@@ -108,7 +109,7 @@ namespace MauiDemo.ViewModels
                 || items[3] is not byte stopBits
                 || items[4] is not Parity parity)
                     return;
-                var test = new IOTestModel();
+                var test = new IOTestModel() { EnableWrite = this.IsEnableWrite ?? false };
                 test.PropertyChanged += (obj, arg) =>
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
